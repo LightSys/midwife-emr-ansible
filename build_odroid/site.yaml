@@ -1,0 +1,10 @@
+---
+# Playbook: build_odroid
+- name: Setup Midwife-EMR on the ODroid
+  hosts: all
+  remote_user: root
+  gather_facts: True
+  vars_files:
+    - secure.yaml
+  roles:
+    - common

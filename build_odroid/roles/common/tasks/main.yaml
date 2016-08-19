@@ -1,0 +1,103 @@
+---
+# =========================================================
+# TODO in no particular order mostly:
+#
+# -. setup the hostname
+# -. change root password.
+# -. add user named support in new admin group
+# 5. adjust /etc/network/interfaces.d/eth0 and wlan0
+# 6. configure and harden SSH
+# -. install Nodejs binary
+# -. create Nodejs user
+# 9. install gulp
+# 10 determine if we still need bower (what version of software is Pami getting?)
+# 11 install Midwife-EMR
+# -- install MySQL
+# 13 configure MySQL
+# 14 install midwife-emr-services
+# -- install nginx
+# 16 configure nginx or does midwife-emr-services do this?
+# 17 No more Redis, right?
+# 18 midwife-emr service
+# 19 configure ufw
+# 20 install autossh and configure
+# 21 configure remote backups
+# 22 install and configure automysqlbackups
+# 23 configure cron jobs
+# 24 Configure external shutdown button
+# =========================================================
+
+- name: Install Ubuntu packages
+  apt: name={{ item }} state=present
+  with_items:
+    - debconf
+    - debconf-utils
+    - fail2ban
+    - mysql-server
+    - nginx-light
+    - ufw
+
+- name: Set default locale
+  debconf: name=locales question='locales/default_environment_locale' value="{{ locale }}" vtype='select'
+
+- name: Get timezone
+  command: /usr/bin/timedatectl status
+  register: timedatectl_contents
+
+- name: Set timezone if needed
+  command: /usr/bin/timedatectl set-timezone {{ timezone }}
+  when: timedatectl_contents.stdout.find("{{ timezone }}") == -1
+
+- name: Create the download directory
+  file: path="{{ download_dir }}" state=directory mode=0700
+
+- name: Download Nodejs
+  get_url:
+    url: "https://nodejs.org/dist/v6.4.0/node-v{{ nodejs_version }}-linux-armv7l.tar.gz"
+    dest: "{{ download_dir }}/node-v{{ nodejs_version }}-linux-armv7l.tar.gz"
+
+- name: Is nodejs installed?
+  command: which node
+  register: is_node_js
+
+- name: Install Nodejs
+  # Note: Using tar instead of the unarchive module because don't see that the
+  # unarchive module can strip components.
+  shell: /bin/tar -xzf {{ download_dir }}/node-v{{ nodejs_version }}-linux-armv7l.tar.gz --strip-components=1 --group=root --no-same-owner -C /usr/local/
+  when: is_node_js.stdout == ""
+
+- name: Set hostname
+  hostname: name="{{ hostname }}"
+
+- name: Add support group
+  group: name=admin state=present
+
+- name: Add support user
+  user:
+    name="{{ support_user }}"
+    password="{{ support_user_password }}"
+    comment="Midwife-EMR support user."
+    group=admin
+    state=present
+    createhome=yes
+
+- name: Add midwife-emr group
+  group: name=midwifeemr state=present
+
+- name: Add midwife-emr user
+  user:
+    name=midwifeemr
+    password="{{ midwifeemr_user_password }}"
+    comment="Midwife-EMR service user"
+    group=midwifeemr
+    state=present
+    createhome=yes
+    home=/var/local/midwifeemr
+    shell=/bin/bash
+
+- name: Change the root password
+  user:
+    name=root
+    password="{{ root_password }}"
+    state=present
+

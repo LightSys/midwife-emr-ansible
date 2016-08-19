@@ -1,0 +1,4 @@
+---
+# Note: there is a bug (or two) in the current version of Ansible 2.1.1 that prevents
+# properly reading group variables when using the -i option on the command line.
+# Therefore, all of these have been move to the inventory file itself.
