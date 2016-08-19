@@ -1,0 +1,12 @@
+---
+- name: Set default locale
+  debconf: name=locales question='locales/default_environment_locale' value="{{ locale }}" vtype='select'
+
+- name: Get timezone
+  command: /usr/bin/timedatectl status
+  register: timedatectl_contents
+
+- name: Set timezone if needed
+  command: /usr/bin/timedatectl set-timezone {{ timezone }}
+  when: timedatectl_contents.stdout.find("{{ timezone }}") == -1
+

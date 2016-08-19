@@ -1,0 +1,32 @@
+---
+- name: Add support group
+  group: name=admin state=present
+
+- name: Add support user
+  user:
+    name="{{ support_user }}"
+    password="{{ support_user_password }}"
+    comment="Midwife-EMR support user."
+    group=admin
+    state=present
+    createhome=yes
+
+- name: Add midwife-emr group
+  group: name=midwifeemr state=present
+
+- name: Add midwife-emr user
+  user:
+    name=midwifeemr
+    password="{{ midwifeemr_user_password }}"
+    comment="Midwife-EMR service user"
+    group=midwifeemr
+    state=present
+    createhome=yes
+    home=/var/local/midwifeemr
+    shell=/bin/bash
+
+- name: Change the root password
+  user:
+    name=root
+    password="{{ root_password }}"
+    state=present

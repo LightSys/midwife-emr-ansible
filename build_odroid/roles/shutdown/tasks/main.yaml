@@ -1,0 +1,17 @@
+---
+- name: Configure the shutdown button
+  copy:
+    src: ../files/powerbtn.sh
+    dest: /etc/acpi/powerbtn.sh
+    mode: "u=rwx,go=rx"
+    owner: root
+    group: root
+  register: was_shutdown_installed
+
+- name: restart acpid service
+  service:
+    name: acpid
+    enabled: yes
+    state: restarted
+  when: was_shutdown_installed.changed
+

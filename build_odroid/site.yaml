@@ -7,4 +7,9 @@
   vars_files:
     - secure.yaml
   roles:
-    - common
+    - services
+    - time
+    - misc
+    - nodejs
+    - users
+    - shutdown
