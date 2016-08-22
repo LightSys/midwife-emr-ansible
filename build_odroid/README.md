@@ -2,12 +2,11 @@
 
 ## TODO in no particular order mostly:
 
-- adjust /etc/network/interfaces.d/eth0 and wlan0
 - configure and harden SSH
 - install gulp
 - determine if we still need bower (what version of software is Pami getting?)
 - install Midwife-EMR
-- configure MySQL
+- configure MySQL (get rid of 4 passwordless root accounts)
 - install midwife-emr-services
 - configure nginx or does midwife-emr-services do this?
 - No more Redis, right?
@@ -17,8 +16,10 @@
 - configure remote backups
 - install and configure automysqlbackups
 - configure cron jobs
+- Resolve hard-coded `option domain-name-servers 192.168.20.1;` in /etc/dhcp/dhcpd.conf
+- Resolve hard-coded 20 network in wlan0 for the gateway
 
-## Done
+### Done
 
 - setup the hostname
 - change root password.
@@ -28,6 +29,9 @@
 - install MySQL
 - install nginx
 - Configure external shutdown button
+- adjust /etc/network/interfaces.d/eth0 and wlan0
+- install/configure AP mode on wlan0
+- configure iptables that are used with wlan0 in AP mode (they are not installing yet)
 
 ## Requirements:
 

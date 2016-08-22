@@ -12,4 +12,6 @@
     - mysql-server
     - nginx-light
     - ufw
+    - iptables
+    - isc-dhcp-server
 

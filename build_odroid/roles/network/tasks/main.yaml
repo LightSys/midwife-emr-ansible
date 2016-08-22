@@ -1,0 +1,117 @@
+---
+- name: Install eth0 configuration
+  copy:
+    src: ../files/eth0
+    dest: /etc/network/interfaces.d/eth0
+    mode: "u=rw,go=r"
+    owner: root
+    group: root
+  register: was_eth0_installed
+
+- name: Install wlan0 configuration
+  copy:
+    src: ../files/wlan0
+    dest: /etc/network/interfaces.d/wlan0
+    mode: "u=rw,go=r"
+    owner: root
+    group: root
+  register: was_wlan0_installed
+
+- name: Install interfaces file
+  copy:
+    src: ../files/interfaces
+    dest: /etc/network/interfaces
+    mode: "u=rw,go=r"
+    owner: root
+    group: root
+  register: was_interfaces_installed
+
+- name: Edit the dhcp configuration file
+  blockinfile:
+    dest: /etc/dhcp/dhcpd.conf
+    block: |
+      ### Adapted per instructions:
+      ### http://forum.odroid.com/viewtopic.php?f=52&t=9102
+      subnet 192.168.222.0 netmask 255.255.255.0 {
+          range 192.168.222.50 192.168.222.100;
+          option broadcast-address 192.168.222.255;
+          option routers 192.168.222.1;
+          default-lease-time 600;
+          max-lease-time 7200;
+          option domain-name "local";
+          option domain-name-servers 192.168.20.1;
+      }
+    insertafter: EOF
+    state: present
+
+- name: Edit the isc-dhcp-server configuration file
+  lineinfile:
+    dest: /etc/default/isc-dhcp-server
+    regexp: ^INTERFACES=
+    line: INTERFACES="wlan0"
+    state: present
+
+- name: Edit sysctl configuration file
+  blockinfile:
+    dest: /etc/sysctl.conf
+    block: |
+      ### Setup per instructions at:
+      ### http://forum.odroid.com/viewtopic.php?f=52&t=9102
+      net.ipv4.ip_forward=1
+    insertafter: EOF
+    state: present
+
+- name: Activate the port forwarding now
+  shell: echo 1 > /proc/sys/net/ipv4/ip_forward
+
+- name: Install hostapd
+  unarchive:
+    src: "../files/hostapd_realtek.tar"
+    copy: yes
+    dest: /usr/local/bin/
+    owner: root
+    group: root
+    mode: "u=rwx,go=rx"
+    creates: /usr/local/bin/hostapd
+
+- name: Create hostapd configuration directory
+  file:
+    path: /etc/hostapd
+    state: directory
+    owner: root
+    group: root
+    mode: "u=rwx,go=rx"
+
+- name: Install the hostapd configuration file
+  copy:
+    src: ../files/hostapd.conf
+    dest: /etc/hostapd
+    owner: root
+    group: root
+    mode: "u=rw,go=r"
+
+- name: Bring everything up when it boots
+  blockinfile:
+    dest: /etc/rc.local
+    block: |
+      ### Per instructions adapted from here:
+      ### http://forum.odroid.com/viewtopic.php?f=52&t=9102
+      ifup wlan0
+      service isc-dhcp-server restart
+      /usr/local/bin/hostapd /etc/hostapd/hostapd.conf &
+    insertbefore: "exit 0"
+    state: present
+
+- name: Restart ODroid
+  command: /sbin/shutdown -r now
+  async: 0
+  poll: 0
+  ignore_errors: true
+  when: (was_eth0_installed.changed == true) or (was_wlan0_installed.changed == true) or (was_interfaces_installed.changed == true)
+
+- name: "Wait for network to come back after reboot: {{ inventory_hostname }}"
+  local_action:
+    wait_for host={{ inventory_hostname }} port=22 search_regex=OpenSSH state=started delay=10 connect_timeout=10 timeout=120
+  become: false
+  when: (was_eth0_installed.changed == true) or (was_wlan0_installed.changed == true) or (was_interfaces_installed.changed == true)
+
