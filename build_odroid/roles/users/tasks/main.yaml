@@ -22,7 +22,7 @@
     group=midwifeemr
     state=present
     createhome=yes
-    home=/var/local/midwifeemr
+    home=/srv/midwife-emr
     shell=/bin/bash
 
 - name: Change the root password

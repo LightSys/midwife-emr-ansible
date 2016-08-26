@@ -1,0 +1,83 @@
+{
+  "site": {
+    "title": "Midwife-EMR",
+    "titleLong": "Midwife-EMR",
+    "languagesMap": {
+      "en-US": "English - Unites States"
+    },
+    "languages": [
+      "en-US"
+    ],
+    "defaultLanguage": "en-US",
+    "debugLanguage": "",
+    "tmpDir": "tmp",
+    "debug": false
+  },
+  "cpu": {
+    "workers": 2
+  },
+  "search": {
+    "rowsPerPage": 20
+  },
+  "client": {
+    "defaultCity": "Davao City"
+  },
+  "host": {
+    "port": 8080,
+    "name": "mercy-dev-1",
+    "tlsPort": 44300
+  },
+  "tls": {
+    "key": "cert/serverKey.pem",
+    "cert": "cert/serverCrtBundle.pem",
+    "passphrase": "",
+    "ciphers": "AES128-GCM-SHA256:RC4:HIGH:!MD5:!aNULL:!EDH",
+    "handshakeTimeout": 600,
+    "honorCipherOrder": true
+  },
+  "database": {
+    "host": "localhost",
+    "port": 3306,
+    "db": "midwifeemr",
+    "dbUser": "midwifeuser",
+    "dbPass": "DATABASE_PASSWORD",
+    "charset": "utf8",
+    "debug": false,
+    "file": "",
+    "directory": ""
+  },
+  "redis": {
+    "db": 8,
+    "host": "127.0.0.1",
+    "port": 6379
+  },
+  "cache": {
+    "shortTTL": 600,
+    "mediumTTL": 3600,
+    "longTTL": 86400,
+    "userTTL": 1200
+  },
+  "data": {
+    "selectRefreshInterval": 600000
+  },
+  "error": {
+    "errorTimeout": 1500
+  },
+  "session": {
+    "secret": "SESSION_SECRET",
+    "pool": true,
+    "table": "session",
+    "cleanup": true,
+    "config": {
+      "host": "localhost",
+      "port": 3306,
+      "user": "midwifeuser",
+      "password": "DATABASE_PASSWORD",
+      "database": "midwifeemr"
+    }
+  },
+  "cookie": {
+    "secret": "COOKIE_SECRET",
+    "maxAge": 1800000
+  }
+}

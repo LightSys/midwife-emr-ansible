@@ -1,0 +1,148 @@
+---
+# Note: The Midwife-EMR service is dependent upon the midwife-emr-tls service
+# being installed and started as a prerequisite due to the TLS certificates/keys
+# that are needed.
+
+- name: Install Midwife-EMR
+  git:
+    repo: https://github.com/kbsymanz/midwife-EMR
+    dest: /srv/midwife-emr/midwife-emr
+    version: "master"
+
+- name: Install npm requirements
+  npm:
+    path: /srv/midwife-emr/midwife-emr
+    production: yes
+
+- name: Change ownership of Midwife-EMR repo
+  file:
+    path: /srv/midwife-emr/midwife-emr
+    owner: "midwifeemr"
+    group: "midwifeemr"
+    state: directory
+    recurse: yes
+
+- name: Install Midwife-EMR service
+  copy:
+    src: ../files/midwife-emr.conf
+    dest: /etc/init/midwife-emr.conf
+    owner: root
+    group: root
+    mode: "u=rwx,go=r"
+
+# Note: these next three tasks that generate random values do not 
+# actually create midwife-emr.json, but we do not want to run 
+# these tasks again if that file exists.
+- name: Generate a random password for database user
+  shell: openssl rand 20|openssl base64
+  args:
+    creates: /etc/midwife-emr/midwife-emr.json
+  register: database_password
+
+- name: Generate a random secret for the session
+  shell: openssl rand 20|openssl base64
+  args:
+    creates: /etc/midwife-emr/midwife-emr.json
+  register: session_secret
+
+- name: Generate a random secret for the cookie
+  shell: openssl rand 20|openssl base64
+  args:
+    creates: /etc/midwife-emr/midwife-emr.json
+  register: cookie_secret
+
+- name: Create the Midwife-EMR configuration directory
+  file:
+    path: /etc/midwife-emr
+    state: directory
+    owner: root
+    group: root
+    mode: "u=rwx,go=rx"
+
+- name: Install Midwife-EMR configuration file
+  copy:
+    src: ../files/midwife-emr.json
+    dest: /etc/midwife-emr/midwife-emr.json
+    force: no
+    owner: root
+    group: root
+    mode: "u=rwx,go=r"
+
+- name: Set database password into configuration file
+  replace:
+    dest: /etc/midwife-emr/midwife-emr.json
+    regexp: 'DATABASE_PASSWORD'
+    replace: "{{ database_password.stdout }}"
+  when: database_password.changed == true
+
+- name: Set session secret into configuration file
+  replace:
+    dest: /etc/midwife-emr/midwife-emr.json
+    regexp: 'SESSION_SECRET'
+    replace: "{{ session_secret.stdout }}"
+  when: database_password.changed == true
+
+- name: Set cookie secret into configuration file
+  replace:
+    dest: /etc/midwife-emr/midwife-emr.json
+    regexp: 'COOKIE_SECRET'
+    replace: "{{ cookie_secret.stdout }}"
+  when: database_password.changed == true
+
+- name: Create the MySQL database
+  mysql_db:
+    name: midwifeemr
+    state: present
+
+# The create_tables.sql and create_log_triggers.sql scripts are
+# idempotent. The create_log_tables.sql script is not so we
+# do not run it if it has already been run.
+- name: Determine if log tables have already been installed
+  command: /usr/bin/mysql -BNe "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'midwifeemr' AND TABLE_NAME LIKE '%Log'"
+  register: number_log_tables
+
+- name: Create the database tables
+  mysql_db:
+    name: midwifeemr
+    state: import
+    target: /srv/midwife-emr/midwife-emr/database/sql/create_tables.sql
+
+- name: Create the database log tables
+  mysql_db:
+    name: midwifeemr
+    state: import
+    target: /srv/midwife-emr/midwife-emr/database/sql/create_log_tables.sql
+  when: number_log_tables.stdout == "0"
+
+- name: Create the database log triggers
+  mysql_db:
+    name: midwifeemr
+    state: import
+    target: /srv/midwife-emr/midwife-emr/database/sql/create_log_triggers.sql
+
+- name: Install getDbPassword.sh
+  copy:
+    src: ../files/getDbPassword.sh
+    dest: /root/
+    force: no
+    owner: root
+    group: root
+    mode: "u=rwx,go="
+
+- name: Get the database password being used
+  shell: /root/getDbPassword.sh
+  register: database_user_password
+
+- name: Create the database user for Midwife-EMR
+  mysql_user:
+    name: "midwifeuser"
+    password: "{{ database_user_password.stdout }}"
+    priv: "midwifeemr.*:ALTER,CREATE,CREATE VIEW,DELETE,DROP,INDEX,INSERT,SELECT,SHOW VIEW,UPDATE"
+    state: present
+
+
+
+### TODO:
+# 6. Set a password on the root MySQL user (should be done right after installing MySQL)
+
+

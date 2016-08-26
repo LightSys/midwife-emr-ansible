@@ -2,17 +2,11 @@
 
 ## TODO in no particular order mostly:
 
-- configure and harden SSH
-- install gulp
-- determine if we still need bower (what version of software is Pami getting?)
-- install Midwife-EMR
 - configure MySQL (get rid of 4 passwordless root accounts)
 - install midwife-emr-services
 - configure nginx or does midwife-emr-services do this?
-- No more Redis, right?
-- midwife-emr service
 - configure ufw
-- install autossh and configure
+- install autossh and configure (make this a separate playbook)
 - configure remote backups
 - install and configure automysqlbackups
 - configure cron jobs
@@ -32,6 +26,11 @@
 - adjust /etc/network/interfaces.d/eth0 and wlan0
 - install/configure AP mode on wlan0
 - configure iptables that are used with wlan0 in AP mode (they are not installing yet)
+- configure and harden SSH (NO CHANGE)
+- determine if we still need bower (what version of software is Pami getting?)
+- No more Redis, right?
+- install Midwife-EMR
+- midwife-emr service
 
 ## Requirements:
 
