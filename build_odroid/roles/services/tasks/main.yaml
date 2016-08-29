@@ -15,4 +15,5 @@
     - iptables
     - isc-dhcp-server
     - python-mysqldb
+    - automysqlbackup
 

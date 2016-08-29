@@ -1,0 +1,113 @@
+---
+
+- name: remove the cron.daily file for automysqlbackup
+  file:
+    path: /etc/cron.daily/automysqlbackup
+    state: absent
+
+- name: add automysqlbackup to cron file
+  cron:
+    name: "automysqlbackup"
+    minute: 0
+    hour: 18
+    day: "*"
+    month: "*"
+    weekday: "*"
+    user: root
+    job: "/usr/sbin/automysqlbackup"
+
+- name: create mount point for SDcard backup
+  file:
+    path: /backups
+    state: directory
+    owner: root
+    group: root
+    mode: "u=rwx,go="
+
+- name: turn off chattr
+  command: chattr -i /etc/fstab
+
+- name: adjust fstab to handle microSD card
+  blockinfile:
+    dest: /etc/fstab
+    block: |
+      # Note that this file is protected with chattr +i because the OS
+      # seems to get confused about the purpose of the SD Card and it
+      # modifies fstab so that the SD Card is mounted at /media/boot.
+      # It does this by replacing the UUID with the SD Card's partition
+      # 1 UUID.
+      #
+      # To modify this file, type this as root
+      #     chattr -i /etc/fstab
+      # After making changes, prevent future changes with
+      #    chattr +i /etc/fstab
+      #
+      # UUID is not used here because the SD Card may
+      # be swapped out with a different card at times.
+      /dev/mmcblk1p1 /backups vfat defaults,nobootwait
+    insertafter: EOF
+
+- name: turn on chattr
+  command: chattr +i /etc/fstab
+
+- name: Create a place on primary drive for staging backups (non-MySQL)
+  file:
+    dest: /var/lib/backups/files
+    state: directory
+    recurse: yes
+
+- name: Copy /etc to backups
+  cron:
+    name: "Backup /etc"
+    minute: 15
+    hour: 18
+    day: "*"
+    month: "*"
+    weekday: "*"
+    user: root
+    job: "/bin/tar -czf /var/lib/backups/files/etc.tar.gz /etc"
+
+- name: Copy latest version in use of Midwife-EMR to backups
+  cron:
+    name: "Backup Midwife-EMR"
+    minute: 20
+    hour: 18
+    day: "*"
+    month: "*"
+    weekday: "*"
+    user: root
+    job: "/bin/tar -czf /var/lib/backups/files/midwife-emr.tar.gz /srv/midwife-emr/midwife-emr/"
+
+- name: Copy crontab to backups
+  cron:
+    name: "Backup crontab"
+    minute: 25
+    hour: 18
+    day: "*"
+    month: "*"
+    weekday: "*"
+    user: root
+    job: "/usr/bin/crontab -l >/var/lib/backups/files/crontab.txt"
+
+- name: Copy non-MySQL backups files to secondary drive
+  cron:
+    name: "Copy backups to secondary drive"
+    minute: 0
+    hour: 19
+    day: "*"
+    month: "*"
+    weekday: "*"
+    user: root
+    job: "/bin/cp -r /var/lib/backups /"
+
+- name: Copy MySQL backup files to secondary drive
+  cron:
+    name: "Copy MySQL backups to secondary drive"
+    minute: 5
+    hour: 19
+    day: "*"
+    month: "*"
+    weekday: "*"
+    user: root
+    job: "/bin/cp -r /var/lib/automysqlbackup /backups/automysqlbackup"
+
