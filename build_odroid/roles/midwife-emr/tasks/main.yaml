@@ -28,7 +28,7 @@
     dest: /etc/init/midwife-emr.conf
     owner: root
     group: root
-    mode: "u=rwx,go=r"
+    mode: "u=rw,go=r"
 
 # Note: these next three tasks that generate random values do not 
 # actually create midwife-emr.json, but we do not want to run 
@@ -140,7 +140,17 @@
     priv: "midwifeemr.*:ALTER,CREATE,CREATE VIEW,DELETE,DROP,INDEX,INSERT,SELECT,SHOW VIEW,UPDATE"
     state: present
 
+# Note: assumes that the eventType table needs content in order to be operational.
+- name: Determine if the default data has already been loaded
+  command: /usr/bin/mysql -BNe "SELECT COUNT(*) FROM midwifeemr.eventType"
+  register: number_eventType
 
+- name: Load default data into the database
+  mysql_db:
+    name: midwifeemr
+    state: import
+    target: /srv/midwife-emr/midwife-emr/database/sql/load_default_data.sql
+  when: number_eventType.stdout == "0"
 
 ### TODO:
 # 6. Set a password on the root MySQL user (should be done right after installing MySQL)

@@ -1,0 +1,388 @@
+#!/bin/bash
+# ----------------------------------------------------
+# manage-midwife-emr-tls
+# 
+# Manage the private CA as well as all TLS certs.
+# Generates TLS certificates for all interfaces found.
+# Also installs the CA certificate into the OS (assumes
+# Ubuntu).
+#
+# Files required with the script:
+# See configuration file section below.
+# CA configuration file
+# Server CSR configuration file
+# CA password file
+# ----------------------------------------------------
+
+
+# ----------------------------------------------------
+# Whatever files we write should be relatively secure.
+# ----------------------------------------------------
+umask 077
+
+# ----------------------------------------------------
+# Site Configuration - adjust per installation.
+# ----------------------------------------------------
+# Top-level directory for managing public key files.
+topdir=/srv/midwife-emr-tls/pki
+# Sub-directory for the CA files and folders.
+cadir=ca
+# Sub-directory for the server certs/keys, etc.
+serverdir=server
+# Where to install the CA certificate in the OS after generation.
+caInstallLocation=/usr/local/share/ca-certificates
+# Command to run to update the CA certificate into the OS.
+caInstallCmd=update-ca-certificates
+# Where to install the server certificates for Nginx.
+tlsCertsInstallLocation=/etc/nginx/ssl
+# Where to install the Nginx site configuration files.
+nginxConfigInstallLocation=/etc/nginx/sites-available
+# Where to create the links for the Nginx sites enabled.
+nginxConfigEnabledLocation=/etc/nginx/sites-enabled
+# Where to install the localhost certificate for Midwife-EMR.
+midwifeEMRCertInstallLocation=/srv/midwife-emr/midwife-emr/cert
+# Service name for Nginx.
+nginxService=nginx
+# Service name for Midwife-EMR.
+midwifeEmrService=midwife-emr
+# Assumes that $wirelessInterface runs an access point and that
+# port 80 is used for instructional materials during setup.
+# If no longer the case, set $wirelessInterface to "NotUsed".
+# This allows this interface to not redirect port 80.
+wirelessInterface=wlan0
+
+# Executables used - adjust per OS.
+OPENSSL=/usr/bin/openssl
+SERVICE=/usr/sbin/service
+IFCONFIG=/sbin/ifconfig
+CHOWN=/bin/chown
+CHMOD=/bin/chmod
+CP=/bin/cp
+LOGGER=/usr/bin/logger
+
+# ----------------------------------------------------
+# Site Configuration
+# Configuration files that are needed to reside in the
+# $topdir directory as set in this script.
+# caconfig = the CA configuration file
+# serverconfig = the server CSR configuration file
+# capwfile = contains the password for the CA
+# ----------------------------------------------------
+caconfig=ca.conf
+serverconfig=servercsr.conf
+capwfile=capw.txt
+
+
+# ----------------------------------------------------
+# log()
+# Write out log messages to syslog or the console
+# depending if the script was started by an Upstart
+# event or not.
+# ----------------------------------------------------
+function log() {
+  local msg=$1
+  if [[ -z $UPSTART_EVENTS ]]
+  then
+    echo "$msg"
+  else
+    $LOGGER -t "Midwife-EMR-TLS" "$msg"
+  fi
+}
+
+# ----------------------------------------------------
+# writeServerCSR()
+# Write out the server CSR file to the directory
+# specified for use by openssl.
+# Parameters:
+#   commonName
+#   filename
+# ----------------------------------------------------
+function writeServerCSR() {
+  local cn=$1
+  local filename=$2
+  cat << SERVERCSREND >$filename
+[req]
+prompt                  = no
+distinguished_name      = dn
+
+[dn]
+CN                      = $cn
+O                       = Midwife-EMR
+L                       = Davao
+C                       = PH
+SERVERCSREND
+}
+
+
+# ----------------------------------------------------
+# buildServer()
+# Create a new server key, csr, certificate, and
+# certificate bundle for the server name passed.
+# ----------------------------------------------------
+function buildServer() {
+  local serverName=$1
+  local serverCSRConfig=$serverdir/server-${serverName}.config.csr
+  local serverCSR=$serverdir/server-${serverName}.csr
+  log "Checking/creating server certificate for ${serverName}."
+
+  # Build a server key.
+  if [[ ! -d "$serverdir" ]]
+  then
+    mkdir $serverdir
+  fi
+  if [[ ! -f "$serverdir/server-${serverName}.key" ]]
+  then
+    log "Creating a Key for the server."
+    $OPENSSL genrsa -out $serverdir/server-${serverName}.key 2048
+  fi
+
+  # Build a server csr.
+  if [[ ! -f "$serverdir/server-${serverName}.csr" ]]
+  then
+    log "Creating the CSR for the server."
+    writeServerCSR $serverName $serverCSRConfig
+    $OPENSSL req -new -config ${serverCSRConfig} -key $serverdir/server-${serverName}.key -out $serverCSR
+  fi
+
+  # Build a server certificate.
+  if [[ ! -f "$serverdir/server-${serverName}.crt" ]]
+  then
+    log "Creating the certificate for the server."
+    $OPENSSL ca -config ${caconfig} -in $serverCSR -out $serverdir/server-${serverName}.crt -extensions server_ext -passin env:capw -batch
+  fi
+
+  # Build a certificate bundle.
+  if [[ ! -f "$serverdir/server-${serverName}-Bundle.crt" ]]
+  then
+    log "Creating the certificate bundle for the server."
+    cat $serverdir/server-${serverName}.crt > $serverdir/server-${serverName}-Bundle.crt
+    cat $cadir/midwife-emr-ca.crt >> $serverdir/server-${serverName}-Bundle.crt
+    log "Created the certificate bundle here: $serverdir/server-${serverName}-Bundle.crt"
+  fi
+}
+
+
+# ----------------------------------------------------
+# setIPAddr()
+# Set the IP address associated with the interface at
+# $interface to the variable $IP.
+# ----------------------------------------------------
+function setIPAddr() {
+  local interface=$1
+  unset -v IP 
+  if [[ -n $interface ]]
+  then
+    IP=$($IFCONFIG $interface|grep "inet addr"|tr -s " "|cut -d " " -f3|cut -d ":" -f2)
+  else
+    log "Warning: Interface not passed to setIPAddr()."
+  fi
+}
+
+# ----------------------------------------------------
+# setInterfaces()
+# Set the global variable $INTERFACES to a string with 
+# the names of the interfaces found separates by spaces.
+# ----------------------------------------------------
+function setInterfaces() {
+  INTERFACES=$(ifconfig|grep " Link"|cut -d " " -f1|tr "\n" " ")
+}
+
+
+# ----------------------------------------------------
+# writeNginxConfig()
+# Write out the Nginx configuration file for the IP
+# address passed to the server directory.
+
+# Note: we do not use variable substitution within
+# the HERE doc because Nginx uses the same form of
+# variables as Bash, i.e. with a leading $.
+#
+# Note also that we treat the $wirelessInterface
+# differently. See comment below.
+# ----------------------------------------------------
+function writeNginxConfig() {
+  local hereDocIP=$1
+  local filename=server/nginx-${hereDocIP}
+  cat << "NGINX1" |sed -e "s/\$hereDocIP/$hereDocIP/g" > $filename
+# -------------------------------------------------------------------
+# Midwife-EMR Nginx Site Template for $hereDocIP.
+# -------------------------------------------------------------------
+
+# Upstream NodeJS workers for this server.
+# Number NodeJS cluster workers: 2
+upstream midwife_ssl_$hereDocIP {
+  ip_hash;
+  server 127.0.0.1:44300;
+  server 127.0.0.1:44301;
+}
+NGINX1
+
+  # We only redirect port 80 for interfaces not running the
+  # wireless access point. Port 80 on the latter is used for
+  # providing instructional information for the user during
+  # setup/training, etc.
+  if [[ "$interface" != "$wirelessInterface" ]]
+  then
+    cat << "NGINX2" |sed -e "s/\$hereDocIP/$hereDocIP/g" >> $filename
+# HTTP Server
+server {
+  listen        $hereDocIP:80;
+  server_name   $hereDocIP;
+  location / {
+    proxy_pass http://127.0.0.1:8000;
+    # The application will redirect to it's SSL non-standard port so we
+    # rewrite it to the port Nginx is listening on.
+    proxy_redirect https://127.0.0.1:44300 https://$hereDocIP:443;
+  }
+}
+NGINX2
+  fi
+
+  cat << "NGINX3" |sed -e "s/\$hereDocIP/$hereDocIP/g" >> $filename
+# HTTPS Server
+server {
+  listen        $hereDocIP:443 ssl;
+  server_name   $hereDocIP;
+  ssl_certificate /etc/nginx/ssl/server-$hereDocIP-Bundle.crt;
+  ssl_certificate_key /etc/nginx/ssl/server-$hereDocIP.key;
+  ssl_session_timeout 30m;
+  ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+  ssl_ciphers AES128-GCM-SHA256:RC4:HIGH:!MD5:!aNULL:!EDH;
+  ssl_prefer_server_ciphers on;
+  location / {
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Host $host;
+    proxy_http_version 1.1;
+    proxy_pass https://127.0.0.1:44300;
+    proxy_redirect https://127.0.0.1:44300 https://$hereDocIP:443;
+  }
+}
+NGINX3
+
+}
+
+# ----------------------------------------------------
+# ----------------------------------------------------
+# Start everything off.
+# ----------------------------------------------------
+# ----------------------------------------------------
+if [[ -n $UPSTART_EVENTS ]]
+then
+  log "Start: events: ${UPSTART_EVENTS}, IFACE: ${IFACE}"
+fi
+cd $topdir
+
+# ----------------------------------------------------
+# Sanity check. Do not proceed without the required
+# files that we need to operate.
+# ----------------------------------------------------
+if [[ ! -f $caconfig ]]
+then
+  log "${0}: missing CA config file named ${caconfig}. Aborting!"
+  exit
+fi
+if [[ ! -f $serverconfig ]]
+then
+  log "${0}: missing Server CSR config file named ${serverconfig}. Aborting!"
+  exit
+fi
+if [[ ! -f $capwfile ]]
+then
+  log "${0}: missing the CA password file name ${capwfile}. Aborting!"
+  exit
+fi
+
+# Read the password.
+export capw=$(cat $capwfile)
+
+# ----------------------------------------------------
+# Create the directory structure for the CA. This is
+# done one time.
+# ----------------------------------------------------
+if [[ ! -d "ca" ]]
+then
+  mkdir -p $cadir/certs $cadir/db $cadir/private
+  chmod 700 $cadir/private
+  touch $cadir/db/index
+  $OPENSSL rand -hex 16 > $cadir/db/serial
+  echo 1001 > $cadir/db/crlnumber
+fi
+
+# ----------------------------------------------------
+# Build the CA. This is done one time.
+# ----------------------------------------------------
+if [[ ! -f "$cadir/midwife-emr-ca.crt" ]]
+then
+  log "Creating the CSR for the CA."
+  $OPENSSL req -new -config ${caconfig} -out $cadir/midwife-emr-ca.csr -keyout $cadir/private/midwife-emr-ca.key -passout env:capw
+
+  log "Creating the certificate for the CA."
+  $OPENSSL ca -selfsign -config ${caconfig} -in $cadir/midwife-emr-ca.csr -out $cadir/midwife-emr-ca.crt -batch -extensions ca_ext -passin env:capw
+
+  log "Creating a DER copy of the certificate."
+  $OPENSSL x509 -inform PEM -outform DER -in $cadir/midwife-emr-ca.crt -out $cadir/midwife-emr-ca.der.crt
+  $CHMOD go=r $cadir/midwife-emr-ca.der.crt
+
+  log "Installing the certificate into the OS."
+  $CHOWN root:root $cadir/midwife-emr-ca.crt
+  $CHMOD go=r $cadir/midwife-emr-ca.crt
+  $CP $cadir/midwife-emr-ca.crt $caInstallLocation/
+  $caInstallCmd
+fi
+
+
+# ----------------------------------------------------
+# Remove the currently enabled Nginx configurations.
+# ----------------------------------------------------
+rm $nginxConfigEnabledLocation/*
+
+# ----------------------------------------------------
+# Create the TLS cert for each of the IP addresses that
+# we are using, if it does not already exist. Then put
+# the certificates/keys and nginx configurations into
+# their proper respective locations.
+# ----------------------------------------------------
+setInterfaces
+for interface in $INTERFACES
+do
+  setIPAddr $interface
+
+  # Sanity check - IP address is needed for certifcate.
+  if [[ -n "$IP" ]]
+  then
+    # Create the server certificate/key and move into place.
+    # Localhost certificate/key is used for the midwife-emr application, not Nginx.
+    buildServer $IP
+    if [[ "$IP" == "127.0.0.1" ]]
+    then
+      cp server/server-${IP}-Bundle.crt $midwifeEMRCertInstallLocation
+      cp server/server-${IP}.key $midwifeEMRCertInstallLocation
+    else
+      cp server/server-${IP}-Bundle.crt $tlsCertsInstallLocation/
+      cp server/server-${IP}.key $tlsCertsInstallLocation/
+    fi
+
+    # Create the Nginx configuration and move into place except for localhost.
+    writeNginxConfig $IP
+    if [[ "$IP" != "127.0.0.1" ]]
+    then
+      cp server/nginx-${IP} $nginxConfigInstallLocation/
+      ln -s $nginxConfigInstallLocation/nginx-${IP} $nginxConfigEnabledLocation/nginx-${IP}
+    fi
+  else
+    log "${0}: interface ${interface} does not have an IP address yet ... skipping."
+  fi
+done
+
+# ----------------------------------------------------
+# Reload the Nginx site configurations and the 
+# Midwife-EMR application.
+# ----------------------------------------------------
+$SERVICE $midwifeEmrService stop
+$SERVICE $midwifeEmrService start
+$SERVICE $nginxService reload
+
+log "${0} finished."
+

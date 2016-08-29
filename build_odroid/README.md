@@ -3,15 +3,15 @@
 ## TODO in no particular order mostly:
 
 - configure MySQL (get rid of 4 passwordless root accounts)
-- install midwife-emr-services
-- configure nginx or does midwife-emr-services do this?
 - configure ufw
 - install autossh and configure (make this a separate playbook)
 - configure remote backups
 - install and configure automysqlbackups
 - configure cron jobs
 - Resolve hard-coded `option domain-name-servers 192.168.20.1;` in /etc/dhcp/dhcpd.conf
+   - This is only when running with wlan0
 - Resolve hard-coded 20 network in wlan0 for the gateway
+   - This is only when running with wlan0
 
 ### Done
 
@@ -30,7 +30,11 @@
 - determine if we still need bower (what version of software is Pami getting?)
 - No more Redis, right?
 - install Midwife-EMR
+- install midwife-emr-services
 - midwife-emr service
+- configure nginx or does midwife-emr-services do this?
+- install and configure automysqlbackups
+- configure cron jobs
 
 ## Requirements:
 

@@ -24,12 +24,12 @@
   },
   "host": {
     "port": 8080,
-    "name": "mercy-dev-1",
+    "name": "midwife-emr",
     "tlsPort": 44300
   },
   "tls": {
-    "key": "cert/serverKey.pem",
-    "cert": "cert/serverCrtBundle.pem",
+    "key": "cert/server-127.0.0.1.key",
+    "cert": "cert/server-127.0.0.1-Bundle.crt",
     "passphrase": "",
     "ciphers": "AES128-GCM-SHA256:RC4:HIGH:!MD5:!aNULL:!EDH",
     "handshakeTimeout": 600,
