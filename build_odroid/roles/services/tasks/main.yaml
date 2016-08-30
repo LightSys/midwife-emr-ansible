@@ -17,3 +17,23 @@
     - python-mysqldb
     - automysqlbackup
 
+- name: Change password of MySQL root user
+  mysql_user:
+    name: root
+    password: "{{ mysql_root_password }}"
+    state: present
+
+- name: Write out the root password so Ansible can find it
+  blockinfile:
+    block: |
+      [client]
+      user=root
+      password={{ mysql_root_password }}
+    create: yes
+    dest: /root/.my.cnf
+    insertafter: EOF
+    state: present
+    owner: root
+    group: root
+    mode: "u=rw,go="
+

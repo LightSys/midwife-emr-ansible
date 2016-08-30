@@ -23,7 +23,7 @@
     "defaultCity": "Davao City"
   },
   "host": {
-    "port": 8080,
+    "port": 8000,
     "name": "midwife-emr",
     "tlsPort": 44300
   },

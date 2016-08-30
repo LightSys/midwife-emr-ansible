@@ -2,7 +2,6 @@
 
 ## TODO in no particular order mostly:
 
-- configure MySQL (get rid of 4 passwordless root accounts)
 - configure ufw
 - install autossh and configure (make this a separate playbook)
 - install duplicity and configure (make this a separate playbook)
@@ -34,6 +33,7 @@
 - configure nginx or does midwife-emr-services do this?
 - install and configure automysqlbackups
 - configure cron jobs
+- configure MySQL (get rid of 4 passwordless root accounts)
 
 ## Requirements:
 
@@ -45,6 +45,7 @@
    - support_user_password: this should be encrypted using `mkpasswd --method=SHA-512`
    - midwifeemr_user_password: this should also be encrypted
    - root_password: encrypted as well
+   - mysql_root_password: encrypted
 
 
 

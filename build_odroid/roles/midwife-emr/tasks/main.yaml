@@ -14,6 +14,12 @@
     path: /srv/midwife-emr/midwife-emr
     production: yes
 
+- name: Run post install script on Midwife-EMR
+  command: /srv/midwife-emr/midwife-emr/node_modules/.bin/npm run postinstall
+  args:
+    chdir: /srv/midwife-emr/midwife-emr
+    creates: /srv/midwife-emr/midwife-emr/static/js/vendor.mwemr-bundle.js
+
 - name: Change ownership of Midwife-EMR repo
   file:
     path: /srv/midwife-emr/midwife-emr
@@ -151,8 +157,5 @@
     state: import
     target: /srv/midwife-emr/midwife-emr/database/sql/load_default_data.sql
   when: number_eventType.stdout == "0"
-
-### TODO:
-# 6. Set a password on the root MySQL user (should be done right after installing MySQL)
 
 
