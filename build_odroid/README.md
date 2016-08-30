@@ -2,14 +2,16 @@
 
 ## TODO in no particular order mostly:
 
-- configure ufw
 - install autossh and configure (make this a separate playbook)
 - install duplicity and configure (make this a separate playbook)
-- Resolve khubd and kworker processes taking 30% of the CPU
+- Harden SSH
+   - Consider preventing root access
+   - If not, definitely increase root password length
 - Resolve hard-coded `option domain-name-servers 192.168.20.1;` in /etc/dhcp/dhcpd.conf
    - This is only when running with wlan0
 - Resolve hard-coded 20 network in wlan0 for the gateway
    - This is only when running with wlan0
+- Resolve khubd and kworker processes taking 30% of the CPU
 
 ### Done
 
@@ -34,6 +36,7 @@
 - install and configure automysqlbackups
 - configure cron jobs
 - configure MySQL (get rid of 4 passwordless root accounts)
+- configure ufw
 
 ## Requirements:
 

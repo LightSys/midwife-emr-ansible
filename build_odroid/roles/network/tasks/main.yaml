@@ -115,3 +115,20 @@
   become: false
   when: (was_eth0_installed.changed == true) or (was_wlan0_installed.changed == true) or (was_interfaces_installed.changed == true)
 
+- name: Reset ufw to defaults but disabled
+  ufw:
+    state: reset
+
+- name: Allow OpenSSH
+  ufw:
+    rule: allow
+    name: OpenSSH
+
+- name: Allow Nginx
+  ufw:
+    rule: allow
+    name: Nginx Full
+
+- name: Enable ufw
+  ufw:
+    state: enabled

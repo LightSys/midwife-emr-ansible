@@ -65,7 +65,7 @@
     month: "*"
     weekday: "*"
     user: root
-    job: "/bin/tar -czf /var/lib/backups/files/etc.tar.gz /etc"
+    job: "/bin/tar -czf /var/lib/backups/files/etc.tar.gz /etc >/dev/null 2>&1"
 
 - name: Copy latest version in use of Midwife-EMR to backups
   cron:
