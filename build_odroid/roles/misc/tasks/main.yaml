@@ -5,3 +5,20 @@
 - name: Set hostname
   hostname: name="{{ hostname }}"
 
+- name: Download odroid-cpu-control
+  get_url:
+    url: http://oph.mdrjr.net/odrobian/pool/main/o/odroid-cpu-control/odroid-cpu-control_1.0-4_all.deb
+    dest: "{{ download_dir }}/odroid-cpu-control_1.0-4_all.deb"
+
+- name: Install odroid-cpu-control
+  apt:
+    deb: "{{ download_dir }}/odroid-cpu-control_1.0-4_all.deb"
+
+- name: Set the governor in boot.ini to interactive
+  lineinfile:
+    dest: /media/boot/boot.ini
+    regexp: ^setenv governor.*$
+    line: "setenv governor \"interactive\" # Changed by Ansible: originally \"performance\""
+    state: present
+
+
