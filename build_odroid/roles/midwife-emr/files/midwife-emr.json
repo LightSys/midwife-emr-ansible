@@ -24,7 +24,7 @@
   },
   "host": {
     "port": 8000,
-    "name": "midwife-emr",
+    "name": "localhost",
     "tlsPort": 44300
   },
   "tls": {
