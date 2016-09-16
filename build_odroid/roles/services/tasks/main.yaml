@@ -16,6 +16,18 @@
     - isc-dhcp-server
     - python-mysqldb
     - automysqlbackup
+    - unattended-upgrades
+    - locales
+
+- name: Upgrade the initscripts package forcing the use of the new ondemand script
+  apt:
+    name: initscripts
+    state: latest
+    dpkg_options: 'force-confnew,force-confdef'
+
+- name: Upgrade packages safely during Ansible run
+  apt:
+    upgrade: safe
 
 - name: Change password of MySQL root user
   mysql_user:
@@ -23,7 +35,7 @@
     password: "{{ mysql_root_password }}"
     state: present
 
-- name: Write out the root password so Ansible can find it
+- name: Write out the MySQL root password so Ansible can find it
   blockinfile:
     block: |
       [client]
