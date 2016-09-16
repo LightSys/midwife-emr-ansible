@@ -1,4 +1,10 @@
 ---
+- name: Generate locales that we want
+  command: /usr/sbin/locale-gen en_US
+
+- name: Generate more locales that we want
+  command: /usr/sbin/locale-gen en_US.UTF-8
+
 - name: Set default locale
   debconf: name=locales question='locales/default_environment_locale' value="{{ locale }}" vtype='select'
 
