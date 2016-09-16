@@ -26,7 +26,7 @@
     group: root
   register: was_interfaces_installed
 
-- name: Edit the dhcp configuration file
+- name: Edit the dhcpd configuration file
   blockinfile:
     dest: /etc/dhcp/dhcpd.conf
     block: |
@@ -38,11 +38,17 @@
           option routers 192.168.222.1;
           default-lease-time 600;
           max-lease-time 7200;
-          option domain-name "local";
-          option domain-name-servers 192.168.20.1;
+          option domain-name "midwife-emr.local";
+          option domain-name-servers 8.8.8.8;
       }
     insertafter: EOF
     state: present
+
+- name: Set authoritative for the dhcpd configuration file
+  lineinfile:
+    dest: /etc/dhcp/dhcpd.conf
+    regexp: authoritative;
+    line: authoritative;
 
 - name: Edit the isc-dhcp-server configuration file
   lineinfile:
