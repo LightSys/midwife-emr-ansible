@@ -15,3 +15,13 @@
     state: restarted
   when: was_shutdown_installed.changed
 
+- name: Schedule reboots to keep the OS running well
+  cron:
+    name: "Schedule reboots"
+    minute: "0"
+    hour: "3"
+    day: "*"
+    month: "*"
+    weekday: "0,3"
+    state: present
+    job: "/sbin/shutdown -r now"
