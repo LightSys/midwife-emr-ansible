@@ -49,6 +49,11 @@
   debug:
     msg: "SSH public key stored here /data/Projects/Midwife-EMR/AnsibleGeneratedOdroidPublicKeys/{{ midwife_emr_support_pub_sha1.stdout }}.pub"
 
+# Note: assumes that ~/.ssh/config is already populated with proper settings.
+- name: Copy the public key to the remote server for installation
+  local_action:
+    command scp -i {{ ssh_id_for_remote_host }} /data/Projects/Midwife-EMR/AnsibleGeneratedOdroidPublicKeys/{{ midwife_emr_support_pub_sha1.stdout }}.pub {{ midwife_emr_support_remote_host }}:AnsibleGeneratedPublicKeys/
+
 - name: Copy the midwife-emr-support.conf file into place
   template:
     src: ../files/midwife-emr-support.conf

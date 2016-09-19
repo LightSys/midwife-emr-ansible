@@ -7,8 +7,8 @@
   vars_files:
     - secure.yaml
   vars_prompt:
-    - name: "midwife_emr_support_remote_port"
-      prompt: "Enter the port on the remote support server for Midwife-EMR-Support to use."
+    - name: "midwife_emr_support_forwarding_port"
+      prompt: "Enter the port on the remote support server for Midwife-EMR-Support to port-forward."
       private: no
   roles:
     - services
