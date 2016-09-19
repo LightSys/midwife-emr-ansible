@@ -1,0 +1,74 @@
+---
+
+- name: Download autossh
+  get_url:
+    url: "http://www.harding.motd.ca/autossh/autossh-1.4e.tgz"
+    dest: "{{ download_dir }}/autossh-1.4e.tgz"
+
+- name: Unarchive autossh
+  shell: /bin/tar -xzf {{ download_dir }}/autossh-1.4e.tgz --group=root --no-same-owner -C {{ download_dir }}
+  args:
+    creates: "{{ download_dir }}/autossh-1.4e/configure"
+
+- name: Configure autossh
+  shell: ./configure
+  args:
+    chdir: "{{ download_dir }}/autossh-1.4e"
+    creates: "{{ download_dir }}/autossh-1.4e/Makefile"
+
+- name: Make autossh
+  shell: make
+  args:
+    chdir: "{{ download_dir }}/autossh-1.4e"
+    creates: "{{ download_dir }}/autossh-1.4e/autossh"
+
+- name: Install autossh
+  shell: make install
+  args:
+    chdir: "{{ download_dir }}/autossh-1.4e"
+    creates: "/usr/local/bin/autossh"
+
+- name: Generate SSH key
+  command: ssh-keygen -b 4096 -t rsa -N "" -f /root/.ssh/midwife-emr-support
+  args:
+    creates: /root/.ssh/midwife-emr-support.pub
+
+- name: Generate a SHA1 hash of the public key
+  shell: cat /root/.ssh/midwife-emr-support.pub |/usr/bin/openssl sha1|cut -d " " -f2
+  register:
+    midwife_emr_support_pub_sha1
+
+- name: Fetch the public key and store on the host using a unique name
+  fetch:
+    src: /root/.ssh/midwife-emr-support.pub
+    flat: yes
+    fail_on_missing: yes
+    dest: "/data/Projects/Midwife-EMR/AnsibleGeneratedOdroidPublicKeys/{{ midwife_emr_support_pub_sha1.stdout }}.pub"
+
+- name: Notify that public key is stored on host
+  debug:
+    msg: "SSH public key stored here /data/Projects/Midwife-EMR/AnsibleGeneratedOdroidPublicKeys/{{ midwife_emr_support_pub_sha1.stdout }}.pub"
+
+- name: Copy the midwife-emr-support.conf file into place
+  template:
+    src: ../files/midwife-emr-support.conf
+    dest: /etc/init/midwife-emr-support.conf
+    owner: root
+    group: root
+    mode: u=rw,go=r
+
+- name: Restart midwife-emr-support service periodically
+  cron:
+    name: "Restart midwife-emr-support service"
+    minute: "31"
+    hour: "*/3"
+    day: "*"
+    month: "*"
+    weekday: "*"
+    user: root
+    state: present
+    job: "/sbin/initctl restart midwife-emr-support"
+
+
+
+
