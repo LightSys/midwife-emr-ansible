@@ -1,0 +1,22 @@
+#!/bin/bash
+# ====================================================
+# midwife-emr-stats
+# Display high-level usage stats of the Midwife-EMR
+# database.
+# ====================================================
+
+### Database specific settings.
+db=midwifeemr
+host=localhost
+user=midwifesupport
+pass=$(grep password /home/support/.my.cnf|sed -e 's/^password="\(.*\)"$/\1/')
+
+### Queries
+upcomingSQL='SELECT COUNT(*) AS prenatalExams, DATE_FORMAT(returnDate, "%m-%d") AS scheduled FROM prenatalExam WHERE returnDate >= CURDATE() AND returnDate < DATE_ADD(CURDATE(), INTERVAL 7 day) GROUP BY returnDate ORDER BY returnDate'
+inProcessSQL='SELECT COUNT(*) AS InProcess FROM priority WHERE assigned IS NOT NULL OR pregnancy_id IS NOT NULL'
+finishedSQL='SELECT COUNT(*) AS prenatalExams, SUBSTR(DAYNAME(date), 1, 3) AS day FROM prenatalExam WHERE date > DATE_SUB(CURDATE(), INTERVAL ABS(1-DAYOFWEEK(CURDATE())) DAY) GROUP BY DAYOFWEEK(date)'
+#currUsersSQL='SELECT (expires - UNIX_TIMESTAMP())/60 AS SessionMinutes FROM session ORDER BY expires'
+currUsersSQL='SELECT (CAST(expires AS SIGNED) - CAST(UNIX_TIMESTAMP() AS SIGNED))/60 AS SessionMinutes FROM sessions ORDER BY expires'
+
+mysql -h $host -D $db -u $user -e "${upcomingSQL};${inProcessSQL};${finishedSQL};${currUsersSQL}" -p${pass}
+

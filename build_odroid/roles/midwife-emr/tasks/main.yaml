@@ -57,6 +57,12 @@
     creates: /etc/midwife-emr/midwife-emr.json
   register: cookie_secret
 
+- name: Generate a random password for database support user
+  shell: openssl rand 20|openssl base64
+  args:
+    creates: "/home/{{ support_user }}/.my.cnf"
+  register: database_support_password
+
 - name: Create the Midwife-EMR configuration directory
   file:
     path: /etc/midwife-emr
@@ -94,6 +100,19 @@
     regexp: 'COOKIE_SECRET'
     replace: "{{ cookie_secret.stdout }}"
   when: database_password.changed == true
+
+- name: Set the database password for the support user in a configuration file
+  blockinfile:
+    block: |
+      [client]
+      password="{{ database_support_password.stdout }}"
+    dest: "/home/{{ support_user }}/.my.cnf"
+    state: present
+    create: yes
+    owner: "{{ support_user }}"
+    group: users
+    mode: "u=rw,go="
+  when: database_support_password.changed == true
 
 - name: Create the MySQL database
   mysql_db:
@@ -146,6 +165,22 @@
     priv: "midwifeemr.*:ALTER,CREATE,CREATE VIEW,DELETE,DROP,INDEX,INSERT,SELECT,SHOW VIEW,UPDATE"
     state: present
 
+- name: Create a read-only database user for Midwife-EMR for support uses
+  mysql_user:
+    name: "{{ database_support_user }}"
+    password: "{{ database_support_password.stdout }}"
+    priv: "midwifeemr.*:SELECT,SHOW VIEW"
+    state: present
+  when: database_support_password.changed == true
+
+- name: Install the midwife-emr-stats utility
+  copy:
+    src: ../files/midwife-emr-stats
+    dest: "/home/{{ support_user }}/bin/midwife-emr-stats"
+    owner: "{{ support_user }}"
+    group: "users"
+    mode: "u=rwx,go="
+
 # Note: assumes that the eventType table needs content in order to be operational.
 - name: Determine if the default data has already been loaded
   command: /usr/bin/mysql -BNe "SELECT COUNT(*) FROM midwifeemr.eventType"
@@ -157,5 +192,6 @@
     state: import
     target: /srv/midwife-emr/midwife-emr/database/sql/load_default_data.sql
   when: number_eventType.stdout == "0"
+
 
 

@@ -12,6 +12,14 @@
     createhome=yes
     shell=/bin/bash
 
+- name: Create the bin directory for the support user
+  file:
+    path: "/home/{{ support_user }}/bin"
+    state: directory
+    owner: "{{ support_user }}"
+    group: "users"
+    mode: "u=rwx,go="
+
 - name: Install my SSH public key for support user
   authorized_key:
     user: "{{ support_user }}"
@@ -19,7 +27,7 @@
     manage_dir: yes
     key: "{{ lookup('file', '/home/kurt/.ssh/id_rsa.pub') }}"
 
-- name: Add an alias for the support user
+- name: Add a myip alias for the support user
   lineinfile:
     create: yes
     dest: "/home/{{ support_user }}/.bash_aliases"
@@ -29,6 +37,17 @@
     state: present
     regexp: "^alias myip"
     line: "alias myip='curl -s myip.dnsomatic.com|sed -e \"s/$/\\n/\"'"
+
+- name: Add a followlog alias for the support user
+  lineinfile:
+    create: yes
+    dest: "/home/{{ support_user }}/.bash_aliases"
+    owner: "{{ support_user }}"
+    group: users
+    mode: "u=rw,go=r"
+    state: present
+    regexp: "^alias followlog"
+    line: "alias followlog='sudo tail -f /var/log/upstart/midwife-emr.log'"
 
 - name: Add midwife-emr group
   group: name=midwifeemr state=present
