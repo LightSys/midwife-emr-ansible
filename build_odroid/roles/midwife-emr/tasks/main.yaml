@@ -7,7 +7,7 @@
   git:
     repo: https://github.com/kbsymanz/midwife-EMR
     dest: /srv/midwife-emr/midwife-emr
-    version: "master"
+    version: "{{ midwife_emr_version }}"
 
 - name: Install npm requirements
   npm:

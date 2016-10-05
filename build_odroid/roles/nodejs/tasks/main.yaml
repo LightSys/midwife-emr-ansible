@@ -2,13 +2,25 @@
 
 - name: Download Nodejs
   get_url:
-    url: "https://nodejs.org/dist/v6.4.0/node-v{{ nodejs_version }}-linux-armv7l.tar.gz"
+    url: "https://nodejs.org/dist/v{{ nodejs_version }}/node-v{{ nodejs_version }}-linux-armv7l.tar.gz"
     dest: "{{ download_dir }}/node-v{{ nodejs_version }}-linux-armv7l.tar.gz"
+
+- name: Display NodeJS version being attempted
+  debug:
+    msg: "Attempting download of https://nodejs.org/dist/v{{ nodejs_version }}/node-v{{ nodejs_version }}-linux-armv7l.tar.gz"
+
+- name: Determine if NodeJS is installed
+  command: which node
+  register: current_node
+  ignore_errors: True
+
+- name: Determine current NodeJS version
+  command: /usr/local/bin/node --version
+  register: current_node_version
+  ignore_errors: True
 
 - name: Install Nodejs
   # Note: Using tar instead of the unarchive module because don't see that the
   # unarchive module can strip components.
   shell: /bin/tar -xzf {{ download_dir }}/node-v{{ nodejs_version }}-linux-armv7l.tar.gz --strip-components=1 --group=root --no-same-owner -C /usr/local/
-  args:
-    creates: /usr/local/bin/node
-
+  when: (current_node.rc == 1) or (current_node_version.stdout != "v{{ nodejs_version }}")
