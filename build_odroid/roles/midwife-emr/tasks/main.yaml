@@ -28,6 +28,12 @@
     state: directory
     recurse: yes
 
+# Note that this can be removed once the Midwife-EMR webpack.config.js
+# is modified per this: https://github.com/webpack/webpack/issues/2223
+- name: Remove extraneous json.gzip files left over from Webpack cache
+  shell: /bin/rm /srv/midwife-emr/midwife-emr/*.json.gzip
+  ignore_errors: true
+
 - name: Install Midwife-EMR service
   copy:
     src: ../files/midwife-emr.conf
