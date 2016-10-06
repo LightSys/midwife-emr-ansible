@@ -202,8 +202,9 @@ function setInterfaces() {
 # the HERE doc because Nginx uses the same form of
 # variables as Bash, i.e. with a leading $.
 #
-# Note also that we treat the $wirelessInterface
-# differently. See comment below.
+# Note2: this Nginx configuration uses the hash directive
+# in the upstream module which requires a minimum
+# version of Nginx of 1.7.2.
 # ----------------------------------------------------
 function writeNginxConfig() {
   local hereDocIP=$1
@@ -216,35 +217,11 @@ function writeNginxConfig() {
 # Upstream NodeJS workers for this server.
 # Number NodeJS cluster workers: 2
 upstream midwife_ssl_$hereDocIP {
-  ip_hash;
+  hash $remote_addr;
   server 127.0.0.1:44300;
   server 127.0.0.1:44301;
 }
-NGINX1
 
-  # We only redirect port 80 for interfaces not running the
-  # wireless access point. Port 80 on the latter is used for
-  # providing instructional information for the user during
-  # setup/training, etc.
-  if [[ "$interface" != "$wirelessInterface" ]]
-  then
-    cat << "NGINX2" |sed -e "s/\$hereDocIP/$hereDocIP/g" >> $filename
-# HTTP Server
-server {
-  listen        $hereDocIP:80;
-  server_name   $hereDocIP;
-  location / {
-    proxy_pass http://127.0.0.1:8000;
-    # The application will redirect to it's SSL non-standard port so we
-    # rewrite it to the port Nginx is listening on.
-    proxy_redirect https://127.0.0.1:44300 https://$hereDocIP:443;
-    proxy_redirect https://midwife-emr:44300 https://$hereDocIP:443;
-  }
-}
-NGINX2
-  fi
-
-  cat << "NGINX3" |sed -e "s/\$hereDocIP/$hereDocIP/g" >> $filename
 # HTTPS Server
 server {
   listen        $hereDocIP:443 ssl;
@@ -261,12 +238,12 @@ server {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header Host $host;
     proxy_http_version 1.1;
-    proxy_pass https://127.0.0.1:44300;
+    proxy_pass https://midwife_ssl_$hereDocIP;
     proxy_redirect https://127.0.0.1:44300 https://$hereDocIP:443;
     proxy_redirect https://midwife-emr:44300 https://$hereDocIP:443;
   }
 }
-NGINX3
+NGINX1
 
 }
 

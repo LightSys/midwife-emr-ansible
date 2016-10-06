@@ -1,4 +1,7 @@
 ---
+- name: Add the Nginx PPA to the repository list
+  apt_repository: repo='ppa:nginx/stable'
+
 - name: Install Ubuntu packages
   apt:
     name="{{ item }}"
@@ -10,7 +13,7 @@
     - debconf-utils
     - fail2ban
     - mysql-server
-    - nginx-light
+    - nginx
     - ufw
     - iptables
     - isc-dhcp-server
