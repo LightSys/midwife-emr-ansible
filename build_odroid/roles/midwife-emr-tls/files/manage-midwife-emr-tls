@@ -41,6 +41,8 @@ nginxConfigInstallLocation=/etc/nginx/sites-available
 nginxConfigEnabledLocation=/etc/nginx/sites-enabled
 # Where to install the localhost certificate for Midwife-EMR.
 midwifeEMRCertInstallLocation=/srv/midwife-emr/midwife-emr/cert
+# Owner of localhost certificate and key for Midwife-EMR.
+midwifeEMRCertOwner=midwifeemr
 # Service name for Nginx.
 nginxService=nginx
 # Service name for Midwife-EMR.
@@ -50,6 +52,8 @@ midwifeEmrService=midwife-emr
 # If no longer the case, set $wirelessInterface to "NotUsed".
 # This allows this interface to not redirect port 80.
 wirelessInterface=wlan0
+# Directory where getInfo.json needs to be written to.
+getInfoJsonLocation=/var/www/documentation
 
 # Executables used - adjust per OS.
 OPENSSL=/usr/bin/openssl
@@ -58,6 +62,7 @@ IFCONFIG=/sbin/ifconfig
 CHOWN=/bin/chown
 CHMOD=/bin/chmod
 CP=/bin/cp
+LN=/bin/ln
 LOGGER=/usr/bin/logger
 
 # ----------------------------------------------------
@@ -265,6 +270,26 @@ NGINX3
 
 }
 
+
+# ----------------------------------------------------
+# writeJsonString()
+# Writes out the getInfo.json file to the location as
+# specified by $getInfoJsonLocation. Assumes that
+# $eth0IP and $wlan0IP exist and are set, even if to
+# an empty string.
+#
+# Note: the wlan0 field must be written out even if the
+# site instance is known not to use a wireless interface
+# because the internal documentation program expects to
+# find that field.
+# ----------------------------------------------------
+function writeJsonString() {
+  cat << ENDJSON > ${getInfoJsonLocation}/getInfo.json
+{"eth0": "${eth0IP}", "wlan0": "${wlan0IP}"}
+ENDJSON
+}
+
+
 # ----------------------------------------------------
 # ----------------------------------------------------
 # Start everything off.
@@ -306,7 +331,7 @@ export capw=$(cat $capwfile)
 if [[ ! -d "ca" ]]
 then
   mkdir -p $cadir/certs $cadir/db $cadir/private
-  chmod 700 $cadir/private
+  $CHMOD 700 $cadir/private
   touch $cadir/db/index
   $OPENSSL rand -hex 16 > $cadir/db/serial
   echo 1001 > $cadir/db/crlnumber
@@ -338,6 +363,7 @@ fi
 # ----------------------------------------------------
 # Remove the currently enabled Nginx configurations.
 # ----------------------------------------------------
+log "Removing current Nginx configuration files."
 rm $nginxConfigEnabledLocation/*
 
 # ----------------------------------------------------
@@ -345,38 +371,77 @@ rm $nginxConfigEnabledLocation/*
 # we are using, if it does not already exist. Then put
 # the certificates/keys and nginx configurations into
 # their proper respective locations.
+#
+# Also gather the IP address associated with each interface
+# so that writeJsonString() can write out the required
+# information file for the internal docs program.
 # ----------------------------------------------------
+
+# These are used by writeJsonString().
+eth0IP=''
+wlan0IP=''
+
 setInterfaces
+log "Found interfaces: ${INTERFACES}."
 for interface in $INTERFACES
 do
+  log "Processing $interface"
   setIPAddr $interface
+  log "$interface is associated with $IP"
 
   # Sanity check - IP address is needed for certifcate.
   if [[ -n "$IP" ]]
   then
-    # Create the server certificate/key and move into place.
+    # Save off the IP for each interface as encountered. This is
+    # used by writeJsonString() below.
+    if [[ "$interface" == "eth0" ]]
+    then
+      eth0IP=$IP
+    fi
+    if [[ "$interface" == "wlan0" ]]
+    then
+      wlan0IP=$IP
+    fi
+
+    # Create the server certificate/key and move into place, setting
+    # ownership and permissions in the process.
     # Localhost certificate/key is used for the midwife-emr application, not Nginx.
     buildServer $IP
     if [[ "$IP" == "127.0.0.1" ]]
     then
-      cp server/server-${IP}-Bundle.crt $midwifeEMRCertInstallLocation
-      cp server/server-${IP}.key $midwifeEMRCertInstallLocation
+      log "Copying server files for the $interface interface for Midwife-EMR into place."
+      $CP server/server-${IP}-Bundle.crt $midwifeEMRCertInstallLocation
+      $CP server/server-${IP}.key $midwifeEMRCertInstallLocation
+      $CHOWN ${midwifeEMRCertOwner}:${midwifeEMRCertOwner} $midwifeEMRCertInstallLocation/server-${IP}-Bundle.crt
+      $CHOWN ${midwifeEMRCertOwner}:${midwifeEMRCertOwner} $midwifeEMRCertInstallLocation/server-${IP}.key
+      $CHMOD u=rw,go= ${midwifeEMRCertInstallLocation}/server-${IP}-Bundle.crt
+      $CHMOD u=rw,go= ${midwifeEMRCertInstallLocation}/server-${IP}.key
     else
-      cp server/server-${IP}-Bundle.crt $tlsCertsInstallLocation/
-      cp server/server-${IP}.key $tlsCertsInstallLocation/
+      log "Copying server files for the $interface interface for Nginx into place."
+      $CP server/server-${IP}-Bundle.crt $tlsCertsInstallLocation/
+      $CP server/server-${IP}.key $tlsCertsInstallLocation/
     fi
 
     # Create the Nginx configuration and move into place except for localhost.
     writeNginxConfig $IP
     if [[ "$IP" != "127.0.0.1" ]]
     then
-      cp server/nginx-${IP} $nginxConfigInstallLocation/
-      ln -s $nginxConfigInstallLocation/nginx-${IP} $nginxConfigEnabledLocation/nginx-${IP}
+      log "Copying Nginx configuration for the $interface interface into place."
+      $CP server/nginx-${IP} $nginxConfigInstallLocation/
+      $LN -s $nginxConfigInstallLocation/nginx-${IP} $nginxConfigEnabledLocation/nginx-${IP}
     fi
   else
     log "${0}: interface ${interface} does not have an IP address yet ... skipping."
   fi
 done
+
+
+# ----------------------------------------------------
+# Write out the new getInfo.json file with the IP
+# addresses associated with each interface.
+# ----------------------------------------------------
+log "Writing out available interfaces to getInfo.json for documentation."
+writeJsonString
 
 # ----------------------------------------------------
 # Reload the Nginx site configurations and the 
