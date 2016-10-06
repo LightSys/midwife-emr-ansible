@@ -20,5 +20,6 @@
     - network
     - midwife-emr-tls
     - midwife-emr
+    - midwife-emr-internal
     - backups
     - autossh

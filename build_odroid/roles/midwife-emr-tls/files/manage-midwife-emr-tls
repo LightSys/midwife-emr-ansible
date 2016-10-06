@@ -53,7 +53,7 @@ midwifeEmrService=midwife-emr
 # This allows this interface to not redirect port 80.
 wirelessInterface=wlan0
 # Directory where getInfo.json needs to be written to.
-getInfoJsonLocation=/var/www/documentation
+getInfoJsonLocation=/srv/midwife-emr-internal
 
 # Executables used - adjust per OS.
 OPENSSL=/usr/bin/openssl
@@ -338,10 +338,12 @@ fi
 
 
 # ----------------------------------------------------
-# Remove the currently enabled Nginx configurations.
+# Remove the currently enabled Nginx configurations for
+# Midwife-EMR. These have this pattern nginx-*. We leave
+# the Midwife-EMR internal docs.
 # ----------------------------------------------------
-log "Removing current Nginx configuration files."
-rm $nginxConfigEnabledLocation/*
+log 'Removing current Nginx configuration files: nginx-*'
+rm $nginxConfigEnabledLocation/nginx-*
 
 # ----------------------------------------------------
 # Create the TLS cert for each of the IP addresses that

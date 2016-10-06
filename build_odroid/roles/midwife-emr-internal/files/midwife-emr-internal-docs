@@ -1,0 +1,11 @@
+# -------------------------------------------------------------------
+# Midwife-EMR Nginx Site Template for internal documentation.
+# Available on all interfaces.
+# -------------------------------------------------------------------
+
+server {
+  listen        80;
+  root /srv/midwife-emr-internal;
+  index index.html;
+}
+
