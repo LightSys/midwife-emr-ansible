@@ -1,0 +1,24 @@
+#!/bin/bash
+# ==========================================
+# update-midwife-emr-internal-docs
+#
+# Keep the Midwife-EMR Internal documentation
+# in sync with the github repository. Run this
+# periodically in a cron job.
+# ==========================================
+TARGET_DIR=/root/downloads/midwife-emr-internal-docs
+PRODUCTION_DIR=/srv/midwife-emr-internal
+GIT=/usr/bin/git
+NPM=/usr/local/bin/npm
+
+# Get the latest from the repo.
+cd $TARGET_DIR
+$GIT pull origin master
+
+# Update npm libs.
+# Need to update the path so that npm can reference node.
+export PATH=$PATH:/usr/local/bin
+$NPM install
+
+# Deploy to production.
+./deploy.sh $PRODUCTION_DIR

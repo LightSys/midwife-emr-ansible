@@ -72,8 +72,4 @@
     weekday: "*"
     user: root
     state: present
-    job: "/sbin/initctl restart midwife-emr-support"
-
-
-
-
+    job: "/sbin/initctl restart midwife-emr-support >/dev/null 2>&1"

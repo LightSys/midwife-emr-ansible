@@ -32,3 +32,30 @@
 - name: Enable the internal docs configuration
   command: ln -fs /etc/nginx/sites-available/midwife-emr-internal-docs /etc/nginx/sites-enabled/midwife-emr-internal-docs
 
+- name: Create the directory for the repo update script
+  file:
+    state: directory
+    dest: /root/bin
+    owner: root
+    group: root
+    mode: "u=rwx,go="
+
+- name: Install the repo update script
+  copy:
+    src: ../files/update-midwife-emr-internal-docs
+    dest: /root/bin/update-midwife-emr-internal-docs
+    owner: root
+    group: root
+    mode: "u=rwx,go="
+
+- name: Install the cron job to run the update script
+  cron:
+    name: "Update the Midwife-EMR Internal Documentation"
+    minute: "0"
+    hour: "5"
+    day: "*"
+    month: "*"
+    weekday: "*"
+    user: root
+    state: present
+    job: "/root/bin/update-midwife-emr-internal-docs >/dev/null 2>&1"
