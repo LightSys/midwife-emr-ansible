@@ -423,6 +423,24 @@ log "Writing out available interfaces to getInfo.json for documentation."
 writeJsonString
 
 # ----------------------------------------------------
+# Write out both formats of the CA certificate to
+# the same place as getInfo.json goes. This allows
+# users to install the CA certificates in their
+# browsers and devices per the instructions provided
+# by midwife-emr-internal-docs.
+# ----------------------------------------------------
+$CP $cadir/midwife-emr-ca.crt ${getInfoJsonLocation}/
+$CP $cadir/midwife-emr-ca.der.crt ${getInfoJsonLocation}/
+
+# ----------------------------------------------------
+# Properly set permissions to allow these files to be
+# served via the web interface by midwife-emr-internal-docs.
+# ----------------------------------------------------
+$CHMOD go=r ${getInfoJsonLocation}/getInfo.json
+$CHMOD go=r ${getInfoJsonLocation}/midwife-emr-ca.crt
+$CHMOD go=r ${getInfoJsonLocation}/midwife-emr-ca.der.crt
+
+# ----------------------------------------------------
 # Reload the Nginx site configurations and the 
 # Midwife-EMR application.
 # ----------------------------------------------------
