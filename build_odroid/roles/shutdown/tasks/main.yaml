@@ -15,13 +15,17 @@
     state: restarted
   when: was_shutdown_installed.changed
 
+### ==========================================================================
+### Note: we are not using the Ansible cron module due to Ansible issue #4777.
+### https://github.com/ansible/ansible-modules-core/pull/4777
+### ==========================================================================
+
 - name: Schedule reboots to keep the OS running well
-  cron:
-    name: "Schedule reboots"
-    minute: "0"
-    hour: "3"
-    day: "*"
-    month: "*"
-    weekday: "0,3"
+  blockinfile:
+    dest: /etc/crontab
+    marker: "# {mark} ANSIBLE - role: shutdown, Schedule reboots to keep the OS running well"
+    block: |
+      0 3 * * 0,3 root /sbin/shutdown -r now
+    insertafter: EOF
     state: present
-    job: "/sbin/shutdown -r now"
+

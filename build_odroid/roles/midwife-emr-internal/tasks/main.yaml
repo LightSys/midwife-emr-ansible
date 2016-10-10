@@ -32,6 +32,7 @@
 - name: Enable the internal docs configuration
   command: ln -fs /etc/nginx/sites-available/midwife-emr-internal-docs /etc/nginx/sites-enabled/midwife-emr-internal-docs
 
+
 - name: Create the directory for the repo update script
   file:
     state: directory
@@ -48,14 +49,17 @@
     group: root
     mode: "u=rwx,go="
 
+### ==========================================================================
+### Note: we are not using the Ansible cron module due to Ansible issue #4777.
+### https://github.com/ansible/ansible-modules-core/pull/4777
+### ==========================================================================
+
 - name: Install the cron job to run the update script
-  cron:
-    name: "Update the Midwife-EMR Internal Documentation"
-    minute: "0"
-    hour: "5"
-    day: "*"
-    month: "*"
-    weekday: "*"
-    user: root
+  blockinfile:
+    dest: /etc/crontab
+    marker: "# {mark} ANSIBLE - role: midwife-emr-internal, Install the cron job to run the update script"
+    block: |
+      0 5 * * * root /root/bin/update-midwife-emr-internal-docs >/dev/null 2>&1
+    insertafter: EOF
     state: present
-    job: "/root/bin/update-midwife-emr-internal-docs >/dev/null 2>&1"
+

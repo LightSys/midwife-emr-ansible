@@ -5,16 +5,19 @@
     path: /etc/cron.daily/automysqlbackup
     state: absent
 
+### ==========================================================================
+### Note: we are not using the Ansible cron module due to Ansible issue #4777.
+### https://github.com/ansible/ansible-modules-core/pull/4777
+### ==========================================================================
+
 - name: add automysqlbackup to cron file
-  cron:
-    name: "automysqlbackup"
-    minute: 0
-    hour: 18
-    day: "*"
-    month: "*"
-    weekday: "*"
-    user: root
-    job: "/usr/sbin/automysqlbackup"
+  blockinfile:
+    dest: /etc/crontab
+    marker: "# {mark} ANSIBLE - role: backups, add automysqlbackup to cron file"
+    block: |
+      0 18 * * * root /usr/sbin/automysqlbackup
+    insertafter: EOF
+    state: present
 
 - name: create mount point for SDcard backup
   file:
@@ -30,6 +33,7 @@
 - name: adjust fstab to handle microSD card
   blockinfile:
     dest: /etc/fstab
+    marker: "# {mark} ANSIBLE - role: backups, adjust fstab to handle microSD card"
     block: |
       # Note that this file is protected with chattr +i because the OS
       # seems to get confused about the purpose of the SD Card and it
@@ -57,57 +61,47 @@
     recurse: yes
 
 - name: Copy /etc to backups
-  cron:
-    name: "Backup /etc"
-    minute: 15
-    hour: 18
-    day: "*"
-    month: "*"
-    weekday: "*"
-    user: root
-    job: "/bin/tar -czf /var/lib/backups/files/etc.tar.gz /etc >/dev/null 2>&1"
+  blockinfile:
+    dest: /etc/crontab
+    marker: "# {mark} ANSIBLE - role: backups, Copy /etc to backups"
+    block: |
+      15 18 * * * root /bin/tar -czf /var/lib/backups/files/etc.tar.gz /etc >/dev/null 2>&1
+    insertafter: EOF
+    state: present
 
 - name: Copy latest version in use of Midwife-EMR to backups
-  cron:
-    name: "Backup Midwife-EMR"
-    minute: 20
-    hour: 18
-    day: "*"
-    month: "*"
-    weekday: "*"
-    user: root
-    job: "/bin/tar -czf /var/lib/backups/files/midwife-emr.tar.gz /srv/midwife-emr/midwife-emr/"
+  blockinfile:
+    dest: /etc/crontab
+    marker: "# {mark} ANSIBLE - role: backups, Copy latest version in use of Midwife-EMR to backups"
+    block: |
+      20 18 * * * root /bin/tar -czf /var/lib/backups/files/midwife-emr.tar.gz /srv/midwife-emr/midwife-emr/
+    insertafter: EOF
+    state: present
 
 - name: Copy crontab to backups
-  cron:
-    name: "Backup crontab"
-    minute: 25
-    hour: 18
-    day: "*"
-    month: "*"
-    weekday: "*"
-    user: root
-    job: "/usr/bin/crontab -l >/var/lib/backups/files/crontab.txt"
+  blockinfile:
+    dest: /etc/crontab
+    marker: "# {mark} ANSIBLE - role: backups, Copy crontab to backups"
+    block: |
+      25 18 * * * root cat /etc/crontab >/var/lib/backups/files/crontab.txt
+    insertafter: EOF
+    state: present
 
 - name: Copy non-MySQL backups files to secondary drive
-  cron:
-    name: "Copy backups to secondary drive"
-    minute: 0
-    hour: 19
-    day: "*"
-    month: "*"
-    weekday: "*"
-    user: root
-    job: "/bin/cp -r /var/lib/backups /"
+  blockinfile:
+    dest: /etc/crontab
+    marker: "# {mark} ANSIBLE - role: backups, Copy non-MySQL backups files to secondary drive"
+    block: |
+      0 19 * * * root /bin/cp -r /var/lib/backups /
+    insertafter: EOF
+    state: present
 
 - name: Copy MySQL backup files to secondary drive
-  cron:
-    name: "Copy MySQL backups to secondary drive"
-    minute: 5
-    hour: 19
-    day: "*"
-    month: "*"
-    weekday: "*"
-    user: root
-    job: "/bin/cp -r /var/lib/automysqlbackup /backups/automysqlbackup"
+  blockinfile:
+    dest: /etc/crontab
+    marker: "# {mark} ANSIBLE - role: backups, Copy MySQL backup files to secondary drive"
+    block: |
+      5 19 * * * root /bin/cp -r /var/lib/automysqlbackup /backups/automysqlbackup
+    insertafter: EOF
+    state: present
 

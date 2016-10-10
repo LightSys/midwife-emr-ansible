@@ -62,14 +62,17 @@
     group: root
     mode: u=rw,go=r
 
+### ==========================================================================
+### Note: we are not using the Ansible cron module due to Ansible issue #4777.
+### https://github.com/ansible/ansible-modules-core/pull/4777
+### ==========================================================================
+
 - name: Restart midwife-emr-support service periodically
-  cron:
-    name: "Restart midwife-emr-support service"
-    minute: "31"
-    hour: "*/3"
-    day: "*"
-    month: "*"
-    weekday: "*"
-    user: root
+  blockinfile:
+    dest: /etc/crontab
+    marker: "# {mark} ANSIBLE - role: autossh, Restart midwife-emr-support service periodically"
+    block: |
+      31 */3 * * 0,3 root /sbin/initctl restart midwife-emr-support >/dev/null 2>&1
+    insertafter: EOF
     state: present
-    job: "/sbin/initctl restart midwife-emr-support >/dev/null 2>&1"
+
