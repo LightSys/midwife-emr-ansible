@@ -15,7 +15,7 @@
     dest: /etc/crontab
     marker: "# {mark} ANSIBLE - role: backups, add automysqlbackup to cron file"
     block: |
-      0 18 * * * root /usr/sbin/automysqlbackup
+      0 18 * * * root /usr/sbin/automysqlbackup >/dev/null 2>&1
     insertafter: EOF
     state: present
 
@@ -74,7 +74,7 @@
     dest: /etc/crontab
     marker: "# {mark} ANSIBLE - role: backups, Copy latest version in use of Midwife-EMR to backups"
     block: |
-      20 18 * * * root /bin/tar -czf /var/lib/backups/files/midwife-emr.tar.gz /srv/midwife-emr/midwife-emr/
+      20 18 * * * root /bin/tar -czf /var/lib/backups/files/midwife-emr.tar.gz /srv/midwife-emr/midwife-emr/ >/dev/null 2>&1
     insertafter: EOF
     state: present
 
