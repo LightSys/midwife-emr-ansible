@@ -26,6 +26,14 @@
     group: root
   register: was_interfaces_installed
 
+- name: Install udev rules for handling wifi modules
+  copy:
+    src: ../files/realtek-wifi-module3.rules
+    dest: /etc/udev/rules.d
+    mode: "u=rw,go=r"
+    owner: root
+    group: root
+
 - name: Edit the dhcpd configuration file
   blockinfile:
     dest: /etc/dhcp/dhcpd.conf
@@ -88,7 +96,7 @@
     group: root
     mode: "u=rwx,go=rx"
 
-- name: Install the hostapd configuration file
+- name: Install the hostapd configuration file for wlan0
   copy:
     src: ../files/hostapd.conf
     dest: /etc/hostapd
@@ -100,7 +108,7 @@
   blockinfile:
     dest: /etc/rc.local
     block: |
-      ### Per instructions adapted from here:
+      ### Per instructions adapted from various places.
       ### http://forum.odroid.com/viewtopic.php?f=52&t=9102
       ifup wlan0
       service isc-dhcp-server restart
