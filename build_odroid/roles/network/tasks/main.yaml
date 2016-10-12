@@ -115,6 +115,11 @@
   ignore_errors: true
   when: (was_eth0_installed.changed == true) or (was_wlan0_installed.changed == true) or (was_interfaces_installed.changed == true)
 
+- name: Notice that the next task will fail if root password was just changed
+  debug:
+    msg: "NOTE: next step will fail if the root password was changed in current run of Ansible. Will need to restart and enter correct password."
+  when: (was_eth0_installed.changed == true) or (was_wlan0_installed.changed == true) or (was_interfaces_installed.changed == true)
+
 - name: "Wait for network to come back after reboot: {{ inventory_hostname }}"
   local_action:
     wait_for host={{ inventory_hostname }} port=22 search_regex=OpenSSH state=started delay=10 connect_timeout=10 timeout=120
