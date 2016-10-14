@@ -247,6 +247,25 @@ NGINX1
 
 }
 
+function writeInternalDocsConfig() {
+  local server_name_string="$eth0IP $wlan0IP"
+  local filename=server/midwife-emr-internal-docs
+  cat << "NGINX2" |sed -e "s/\$server_name_string/$server_name_string/g" > $filename
+# -------------------------------------------------------------------
+# Midwife-EMR Nginx Site Template for internal documentation.
+# Available on all interfaces.
+# -------------------------------------------------------------------
+
+server {
+  listen        80;
+  server_name   $server_name_string;
+  root /srv/midwife-emr-internal;
+  index index.html;
+}
+NGINX2
+
+}
+
 
 # ----------------------------------------------------
 # writeJsonString()
@@ -421,6 +440,16 @@ done
 # ----------------------------------------------------
 log "Writing out available interfaces to getInfo.json for documentation."
 writeJsonString
+
+# ----------------------------------------------------
+# Write out the Nginx configuration for the internal
+# documentation which has to be configured according
+# to the IP addresses in use.
+# ----------------------------------------------------
+log "Writing out Nginx config for Midwife-EMR Internal documentation."
+writeInternalDocsConfig
+$CP server/midwife-emr-internal-docs ${nginxConfigInstallLocation}/
+$LN -fs ${nginxConfigInstallLocation}/midwife-emr-internal-docs ${nginxConfigEnabledLocation}/midwife-emr-internal-docs
 
 # ----------------------------------------------------
 # Write out both formats of the CA certificate to

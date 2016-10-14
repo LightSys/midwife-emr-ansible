@@ -21,17 +21,8 @@
 - name: Deploy the midwife-emr-internal site
   shell: "{{ download_dir }}/midwife-emr-internal-docs/deploy.sh {{ midwife_emr_internal_docs_deploy_dir }}"
 
-- name: Install the Nginx configuration file
-  copy:
-    src: ../files/midwife-emr-internal-docs
-    dest: /etc/nginx/sites-available/midwife-emr-internal-docs
-    owner: root
-    group: root
-    mode: "u=rw,go=r"
-
-- name: Enable the internal docs configuration
-  command: ln -fs /etc/nginx/sites-available/midwife-emr-internal-docs /etc/nginx/sites-enabled/midwife-emr-internal-docs
-
+# Note: the manage-midwife-emr-tls script generates the Nginx config file,
+# installs, and activates it.
 
 - name: Create the directory for the repo update script
   file:
