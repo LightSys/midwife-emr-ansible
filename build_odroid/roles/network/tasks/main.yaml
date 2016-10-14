@@ -138,6 +138,29 @@
   ufw:
     state: reset
 
+# Configure ip masquerading using UFW.
+# https://help.ubuntu.com/lts/serverguide/firewall.html#ip-masquerading
+- name: Set the ufw default forwarding policy
+  lineinfile:
+    dest: /etc/default/ufw
+    regexp: "^[# ]*DEFAULT_FORWARD_POLICY="
+    line: DEFAULT_FORWARD_POLICY="ACCEPT"
+    state: present
+
+- name: Add ip masquerading rules to /etc/ufw/before.rules
+  blockinfile:
+    dest: /etc/ufw/before.rules
+    block: |
+      # nat Table rules
+      *nat
+      :POSTROUTING ACCEPT [0:0]
+
+      # Forward traffic from wlan0 through eth0.
+      -A POSTROUTING -s 192.168.222.0/24 -o eth0 -j MASQUERADE
+      COMMIT
+    insertbefore: "Don't delete these required lines, otherwise there will be errors"
+    state: present
+
 - name: Allow OpenSSH
   ufw:
     rule: allow
