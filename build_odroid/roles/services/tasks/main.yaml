@@ -32,11 +32,12 @@
   apt:
     upgrade: safe
 
-- name: Change password of MySQL root user
+- name: Change password of all MySQL root user accounts
   mysql_user:
     name: root
     password: "{{ mysql_root_password }}"
     state: present
+    host_all: yes
 
 - name: Write out the MySQL root password so Ansible can find it
   blockinfile:
