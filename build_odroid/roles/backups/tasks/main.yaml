@@ -101,7 +101,7 @@
     dest: /etc/crontab
     marker: "# {mark} ANSIBLE - role: backups, Copy MySQL backup files to secondary drive"
     block: |
-      5 19 * * * root /bin/cp -r /var/lib/automysqlbackup /backups/automysqlbackup
+      5 19 * * * root /bin/cp -r /var/lib/automysqlbackup/* /backups/automysqlbackup
     insertafter: EOF
     state: present
 
