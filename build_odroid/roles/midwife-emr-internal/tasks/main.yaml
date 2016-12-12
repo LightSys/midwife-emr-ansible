@@ -34,7 +34,7 @@
 
 - name: Install the repo update script
   copy:
-    src: ../files/update-midwife-emr-internal-docs
+    src: roles/midwife-emr-internal/files/update-midwife-emr-internal-docs
     dest: /root/bin/update-midwife-emr-internal-docs
     owner: root
     group: root

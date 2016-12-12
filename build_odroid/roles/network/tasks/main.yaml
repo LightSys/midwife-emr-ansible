@@ -1,7 +1,7 @@
 ---
 - name: Install eth0 configuration
   copy:
-    src: ../files/eth0
+    src: roles/network/files/eth0
     dest: /etc/network/interfaces.d/eth0
     mode: "u=rw,go=r"
     owner: root
@@ -10,7 +10,7 @@
 
 - name: Install wlan0 configuration
   copy:
-    src: ../files/wlan0
+    src: roles/network/files/wlan0
     dest: /etc/network/interfaces.d/wlan0
     mode: "u=rw,go=r"
     owner: root
@@ -19,7 +19,7 @@
 
 - name: Install interfaces file
   copy:
-    src: ../files/interfaces
+    src: roles/network/files/interfaces
     dest: /etc/network/interfaces
     mode: "u=rw,go=r"
     owner: root
@@ -28,7 +28,7 @@
 
 - name: Install udev rules for handling wifi modules
   copy:
-    src: ../files/realtek-wifi-module3.rules
+    src: roles/network/files/realtek-wifi-module3.rules
     dest: /etc/udev/rules.d
     mode: "u=rw,go=r"
     owner: root
@@ -80,7 +80,7 @@
 
 - name: Install hostapd
   unarchive:
-    src: "../files/hostapd_realtek.tar"
+    src: "roles/network/files/hostapd_realtek.tar"
     copy: yes
     dest: /usr/local/bin/
     owner: root
@@ -98,7 +98,7 @@
 
 - name: Install the hostapd configuration file for wlan0
   copy:
-    src: ../files/hostapd.conf
+    src: roles/network/files/hostapd.conf
     dest: /etc/hostapd
     owner: root
     group: root

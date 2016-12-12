@@ -1,7 +1,7 @@
 ---
 - name: Configure the shutdown button
   copy:
-    src: ../files/powerbtn.sh
+    src: roles/shutdown/files/powerbtn.sh
     dest: /etc/acpi/powerbtn.sh
     mode: "u=rwx,go=rx"
     owner: root

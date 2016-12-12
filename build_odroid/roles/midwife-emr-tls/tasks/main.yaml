@@ -11,7 +11,7 @@
 
 - name: Install Midwife-EMR-TLS CA config file
   copy:
-    src: ../files/ca.conf
+    src: roles/midwife-emr-tls/files/ca.conf
     dest: /srv/midwife-emr-tls/pki/
     owner: root
     group: root
@@ -19,7 +19,7 @@
 
 - name: Install Midwife-EMR-TLS Server config file
   copy:
-    src: ../files/servercsr.conf
+    src: roles/midwife-emr-tls/files/servercsr.conf
     dest: /srv/midwife-emr-tls/pki/
     owner: root
     group: root
@@ -27,7 +27,7 @@
 
 - name: Install Midwife-EMR-TLS command file
   copy:
-    src: ../files/manage-midwife-emr-tls
+    src: roles/midwife-emr-tls/files/manage-midwife-emr-tls
     dest: /srv/midwife-emr-tls/pki/
     owner: root
     group: root
@@ -53,7 +53,7 @@
 
 - name: Install Midwife-EMR-TLS service file
   copy:
-    src: ../files/midwife-emr-tls.conf
+    src: roles/midwife-emr-tls/files/midwife-emr-tls.conf
     dest: /etc/init/
     owner: root
     group: root

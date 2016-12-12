@@ -5,7 +5,7 @@
 
 - name: Install Midwife-EMR
   git:
-    repo: https://github.com/kbsymanz/midwife-EMR
+    repo: git://github.com/kbsymanz/midwife-EMR.git
     dest: /srv/midwife-emr/midwife-emr
     version: "{{ midwife_emr_version }}"
 
@@ -36,7 +36,7 @@
 
 - name: Install Midwife-EMR service
   copy:
-    src: ../files/midwife-emr.conf
+    src: roles/midwife-emr/files/midwife-emr.conf
     dest: /etc/init/midwife-emr.conf
     owner: root
     group: root
@@ -79,7 +79,7 @@
 
 - name: Install Midwife-EMR configuration file
   copy:
-    src: ../files/midwife-emr.json
+    src: roles/midwife-emr/files/midwife-emr.json
     dest: /etc/midwife-emr/midwife-emr.json
     force: no
     owner: root
@@ -153,7 +153,7 @@
 
 - name: Install getDbPassword.sh
   copy:
-    src: ../files/getDbPassword.sh
+    src: roles/midwife-emr/files/getDbPassword.sh
     dest: /root/
     force: no
     owner: root
@@ -181,7 +181,7 @@
 
 - name: Install the midwife-emr-stats utility
   copy:
-    src: ../files/midwife-emr-stats
+    src: roles/midwife-emr/files/midwife-emr-stats
     dest: "/home/{{ support_user }}/bin/midwife-emr-stats"
     owner: "{{ support_user }}"
     group: "users"
