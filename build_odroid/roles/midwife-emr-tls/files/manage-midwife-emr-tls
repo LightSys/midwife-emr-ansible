@@ -128,6 +128,7 @@ function buildServer() {
   local serverName=$1
   local serverCSRConfig=$serverdir/server-${serverName}.config.csr
   local serverCSR=$serverdir/server-${serverName}.csr
+  local serverEXT=$serverdir/server-${serverName}.ext
   log "Checking/creating server certificate for ${serverName}."
 
   # Build a server key.
@@ -149,11 +150,18 @@ function buildServer() {
     $OPENSSL req -new -config ${serverCSRConfig} -key $serverdir/server-${serverName}.key -out $serverCSR
   fi
 
+  # Write out the extensions file.
+  if [[ ! -f "$serverEXT" ]]
+  then
+    log "Writing the server extensions file."
+    echo "subjectAltName = IP:${serverName}" >${serverEXT}
+  fi
+
   # Build a server certificate.
   if [[ ! -f "$serverdir/server-${serverName}.crt" ]]
   then
     log "Creating the certificate for the server."
-    $OPENSSL ca -config ${caconfig} -in $serverCSR -out $serverdir/server-${serverName}.crt -extensions server_ext -passin env:capw -batch
+    $OPENSSL ca -config ${caconfig} -in $serverCSR -out $serverdir/server-${serverName}.crt -extfile ${serverEXT} -passin env:capw -batch
   fi
 
   # Build a certificate bundle.
