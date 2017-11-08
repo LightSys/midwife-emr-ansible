@@ -19,6 +19,7 @@
     - shutdown
     - network
     - midwife-emr-tls
+    - build_admin_client
     - midwife-emr
     - midwife-emr-internal
     - backups

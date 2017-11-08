@@ -5,7 +5,7 @@
 
 - name: Install Midwife-EMR
   git:
-    repo: git://github.com/kbsymanz/midwife-EMR.git
+    repo: git://github.com/lightsys/midwife-EMR.git
     dest: /srv/midwife-emr/midwife-emr
     version: "{{ midwife_emr_version }}"
 
@@ -19,6 +19,11 @@
   args:
     chdir: /srv/midwife-emr/midwife-emr
     creates: /srv/midwife-emr/midwife-emr/static/js/vendor.mwemr-bundle.js
+
+- name: Copy Elm admin client deliverables into place
+  copy:
+    src: ../../build_admin_client/files/docker/dist/
+    dest: /srv/midwife-emr/midwife-emr/static/js
 
 - name: Change ownership of Midwife-EMR repo
   file:

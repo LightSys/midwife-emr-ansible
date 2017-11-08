@@ -1,9 +1,13 @@
 ---
 
 - name: Download Nodejs
-  get_url:
-    url: "https://nodejs.org/dist/v{{ nodejs_version }}/node-v{{ nodejs_version }}-linux-armv7l.tar.gz"
-    dest: "{{ download_dir }}/node-v{{ nodejs_version }}-linux-armv7l.tar.gz"
+  # Use shell and wget here due to an apparent bug in get_url that was unable
+  # to be resolved.
+  shell: wget -c "https://nodejs.org/dist/v{{ nodejs_version }}/node-v{{ nodejs_version }}-linux-armv7l.tar.gz"
+  args:
+    chdir: "{{ download_dir }}"
+    creates:
+      "{{ download_dir }}/node-v{{ nodejs_version }}-linux-armv7l.tar.gz"
 
 - name: Display NodeJS version being attempted
   debug:

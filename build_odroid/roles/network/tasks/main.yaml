@@ -49,6 +49,15 @@
           option domain-name "midwife-emr.local";
           option domain-name-servers 8.8.8.8;
       }
+      # Allow Midwife-EMR to be a DHCP server for the 20 network.
+      # Note that we no longer require Midwife-EMR to also run
+      # dns-masq since Midwife-EMR now uses IP address only rather
+      # than hostname.
+      subnet 192.168.20.0 netmask 255.255.255.0 {
+          range 192.168.20.50 192.168.20.250;
+          option routers 192.168.20.1;
+          option domain-name-servers 8.8.8.8;
+      }
     insertafter: EOF
     state: present
 
@@ -62,7 +71,7 @@
   lineinfile:
     dest: /etc/default/isc-dhcp-server
     regexp: ^INTERFACES=
-    line: INTERFACES="wlan0"
+    line: INTERFACES="wlan0 eth0"
     state: present
 
 - name: Edit sysctl configuration file

@@ -28,3 +28,11 @@
     line: "setenv governor \"interactive\" # Changed by Ansible: originally \"performance\""
     state: present
 
+- name: Install shmig for migrations
+  get_url:
+    url: https://raw.githubusercontent.com/mbucc/shmig/aff54e03d13f8f95b422cf898505490a56152a4a/shmig
+    dest: /usr/local/bin
+    mode: u=rwx,go=rx
+    group: root
+    owner: root
+
