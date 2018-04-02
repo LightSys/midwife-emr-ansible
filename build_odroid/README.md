@@ -63,3 +63,10 @@ Running starting from a certain task
 ```
 ansible-playbook site.yaml -i inventories/odroid -k --vault-password-file ~/.ansible/vault_pass.txt --start-at-task "Download Nodejs"
 ```
+
+## TODO
+
+- Provide a means to specify whether the target should be build using a static
+  IP or dynamic one.
+- Provide a means to specify whether the target should run a DHCP server (but
+  only if using a static IP).
