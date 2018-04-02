@@ -1,47 +1,6 @@
 # Notes on using this playbook
 
-## TODO in no particular order mostly:
-
-- Harden SSH
-   - Consider preventing root access
-   - If not, definitely increase root password length
-   - But is this security enough?
-- Resolve khubd and kworker processes taking 30% of the CPU
-   - Could this be due to hot-plug on the USB? 
-      - NO, doesn't seem to be the case.
-
-### Done
-
-- setup the hostname
-- change root password.
-- add user named support in new admin group
-- install Nodejs binary
-- create Nodejs user
-- install MySQL
-- install nginx
-- Configure external shutdown button
-- adjust /etc/network/interfaces.d/eth0 and wlan0
-- install/configure AP mode on wlan0
-- configure iptables that are used with wlan0 in AP mode (they are not installing yet)
-- configure and harden SSH (NO CHANGE)
-- determine if we still need bower (what version of software is Pami getting?)
-- No more Redis, right?
-- install Midwife-EMR
-- install midwife-emr-services
-- midwife-emr service
-- configure nginx or does midwife-emr-services do this?
-- install and configure automysqlbackups
-- configure cron jobs
-- configure MySQL (get rid of 4 passwordless root accounts)
-- configure ufw
-- install autossh and configure (make this optional)
-- Migrate autossh to kbsymanz5 instead of kbsymanz1
-- Resolve hard-coded `option domain-name-servers 192.168.20.1;` in /etc/dhcp/dhcpd.conf
-   - This is only when running with wlan0
-- Resolve hard-coded 20 network in wlan0 for the gateway
-   - This is only when running with wlan0
-
-## Requirements:
+## Requirements and Assumptions:
 
 1. Assumes that secure.yaml is in the top directory and that it is protected
    with ansible-vault. This file is not included in the git repository.
@@ -53,7 +12,43 @@
    - root_password: encrypted as well
    - mysql_root_password: encrypted
 
+3. Assumes that `support_user.pub` is in `roles/users/files` and it is the SSH
+   public file of the support user. This file is not included in the git
+   repository.
 
+4. Assumes that there is a file named `odroid` in `inventories` and it
+   contains variable assignments. See sample below for details.
+
+## inventories/odroid
+
+```
+[odroid]
+192.168.20.21
+
+[odroid:vars]
+ansible_ssh_user=root
+download_dir=/root/downloads
+hostname=midwife-emr
+locale=en_US.UTF-8
+timezone=Asia/Manila
+support_user=support
+database_support_user=midwifesupport
+nodejs_version=6.9.4
+midwife_emr_version=master
+midwife_emr_internal_docs_deploy_dir=/srv/midwife-emr-internal
+
+# The remote host that the ODroid connects to for support purposes.
+midwife_emr_support_remote_host="midwife-emr-support.example.com"
+
+# The remote ssh port that the ODroid connects to for support purposes.
+midwife_emr_support_remote_port=22
+
+# This id is for copying the generated public key to the remote support server.
+ssh_id_for_remote_host=/home/your_username_here/.ssh/your_SSH_id_file
+
+# Note: midwife_emr_support_forwarding_port is the port for port-forwarding
+# that the ODroid will establish with autossh and is set via an Ansible prompt.
+```
 
 ## Running from the command line
 

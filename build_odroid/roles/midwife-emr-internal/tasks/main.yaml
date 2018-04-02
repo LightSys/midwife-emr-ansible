@@ -2,7 +2,7 @@
 
 - name: Install Midwife-EMR-Internal
   git:
-    repo: https://github.com/kbsymanz/midwife-emr-internal-docs
+    repo: https://github.com/lightsys/midwife-emr-internal-docs
     dest: "{{ download_dir }}/midwife-emr-internal-docs"
 
 - name: Install npm requirements

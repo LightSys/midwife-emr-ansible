@@ -5,8 +5,7 @@
   delegate_to: 127.0.0.1
 
 - name: Pull Midwife-EMR Repo
-  # Note: temp local location for testing, etc.
-  shell: git archive --remote=/home/kurt/Projects/Midwife-EMR/Docker/midwife-emr-3.git master |tar -xf -
+  shell: git archive --remote=https://github.com/LightSys/midwife-EMR master |tar -xf -
   args:
     chdir: roles/build_admin_client/files/docker/app
   delegate_to: 127.0.0.1
