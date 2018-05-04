@@ -40,17 +40,11 @@
     group: root
     mode: "u=rwx,go="
 
-### ==========================================================================
-### Note: we are not using the Ansible cron module due to Ansible issue #4777.
-### https://github.com/ansible/ansible-modules-core/pull/4777
-### ==========================================================================
-
 - name: Install the cron job to run the update script
-  blockinfile:
-    dest: /etc/crontab
-    marker: "# {mark} ANSIBLE - role: midwife-emr-internal, Install the cron job to run the update script"
-    block: |
-      0 5 * * * root /root/bin/update-midwife-emr-internal-docs >/dev/null 2>&1
-    insertafter: EOF
-    state: present
-
+  cron:
+    name: "Install the cron job to run the update script"
+    minute: "5"
+    hour: "0"
+    job: "/root/bin/update-midwife-emr-internal-docs"
+    user: root
+    cron_file: update-midwife-emr-internal-docs

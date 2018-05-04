@@ -1,0 +1,13 @@
+[Unit]
+Description=Generate server certificates in response to IP changes.
+BindsTo=sys-subsystem-net-devices-%i.device
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/srv/midwife-emr-tls/pki/manage-midwife-emr-tls %I
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+---
+# Playbook: Preparation for build_odroid
+- name: Setup the remote user
+  hosts: all
+  remote_user: root
+  gather_facts: True
+  vars_files:
+    - secure.yaml
+  roles:
+    - preparation
+

@@ -1,0 +1,14 @@
+[Unit]
+Description=Midwife-EMR Service
+After=mysql.service
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+Environment=NODE_ENV=production
+User=midwifeemr
+Group=midwifeemr
+WorkingDirectory=/srv/midwife-emr/midwife-emr
+ExecStart=/usr/local/bin/node cluster.js --config /etc/midwife-emr/midwife-emr.json

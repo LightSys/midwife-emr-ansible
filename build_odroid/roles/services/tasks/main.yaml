@@ -1,7 +1,4 @@
 ---
-- name: Add the Nginx PPA to the repository list
-  apt_repository: repo='ppa:nginx/stable'
-
 - name: Install Ubuntu packages
   apt:
     name="{{ item }}"
@@ -9,24 +6,29 @@
     update_cache=yes
     cache_valid_time=86400
   with_items:
+    - automysqlbackup
     - debconf
     - debconf-utils
+    - dnsmasq
     - fail2ban
-    - mysql-server
-    - nginx
-    - ufw
+    - git-core
+    - hostapd
     - iptables
     - isc-dhcp-server
-    - python-mysqldb
-    - automysqlbackup
-    - unattended-upgrades
+    - libnl-3-dev
+    - libnl-genl-3-dev
+    - libssl-dev
     - locales
-
-- name: Upgrade the initscripts package forcing the use of the new ondemand script
-  apt:
-    name: initscripts
-    state: latest
-    dpkg_options: 'force-confnew,force-confdef'
+    - mariadb-server-10.0
+    - mariadb-client-10.0
+    - nginx
+    - pkg-config
+    - python-mysqldb
+    - rfkill
+    - unattended-upgrades
+    - vim
+    - exfat-fuse
+    - exfat-utils
 
 - name: Upgrade packages safely during Ansible run
   apt:
@@ -44,7 +46,7 @@
     block: |
       [client]
       user=root
-      password={{ mysql_root_password }}
+      password="{{ mysql_root_password }}"
     create: yes
     dest: /root/.my.cnf
     insertafter: EOF
@@ -53,3 +55,5 @@
     group: root
     mode: "u=rw,go="
 
+- name: Disable plugins for the root user which allow password-less access.
+  command: /usr/bin/mysql -uroot -e "UPDATE mysql.user SET plugin='' WHERE User='root';FLUSH PRIVILEGES;" mysql

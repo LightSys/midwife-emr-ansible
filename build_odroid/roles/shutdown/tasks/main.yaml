@@ -1,31 +1,11 @@
 ---
-- name: Configure the shutdown button
-  copy:
-    src: roles/shutdown/files/powerbtn.sh
-    dest: /etc/acpi/powerbtn.sh
-    mode: "u=rwx,go=rx"
-    owner: root
-    group: root
-  register: was_shutdown_installed
-
-- name: restart acpid service
-  service:
-    name: acpid
-    enabled: yes
-    state: restarted
-  when: was_shutdown_installed.changed
-
-### ==========================================================================
-### Note: we are not using the Ansible cron module due to Ansible issue #4777.
-### https://github.com/ansible/ansible-modules-core/pull/4777
-### ==========================================================================
 
 - name: Schedule reboots to keep the OS running well
-  blockinfile:
-    dest: /etc/crontab
-    marker: "# {mark} ANSIBLE - role: shutdown, Schedule reboots to keep the OS running well"
-    block: |
-      0 3 * * 0,3 root /sbin/shutdown -r now
-    insertafter: EOF
-    state: present
-
+  cron:
+    name: "Schedule reboots to keep the OS running well"
+    minute: "3"
+    hour: "0"
+    weekday: "0,3"
+    job: "/sbin/shutdown -r now"
+    user: root
+    cron_file: reboot-midwife-emr

@@ -51,14 +51,6 @@
     group: root
     mode: "u=rw,go="
 
-- name: Install Midwife-EMR-TLS service file
-  copy:
-    src: roles/midwife-emr-tls/files/midwife-emr-tls.conf
-    dest: /etc/init/
-    owner: root
-    group: root
-    mode: "u=rw,go=r"
-
 - name: Create the directory for TLS certificates/keys for Nginx
   file:
     path: /etc/nginx/ssl
@@ -67,16 +59,18 @@
     group: root
     mode: "u=rwx,go="
 
-- name: Restart ODroid
-  command: /sbin/shutdown -r now
-  async: 0
-  poll: 0
-  ignore_errors: true
-  when: ca_password_saved.changed == true
+- name: Install the midwife-emr-tls service.
+  copy:
+    src: roles/midwife-emr-tls/files/midwife-emr-tls.service
+    dest: /etc/systemd/system/midwife-emr-tls.service
+    owner: root
+    group: root
+    mode: "u=rw,go=r"
+  register: midwife_emr_tls_installed
 
-- name: "Wait for network to come back after reboot: {{ inventory_hostname }}"
-  local_action:
-    wait_for host={{ inventory_hostname }} port=22 search_regex=OpenSSH state=started delay=10 connect_timeout=10 timeout=120
-  become: false
-  when: ca_password_saved.changed == true
+- name: Reload the systemd services as necessary
+  command: systemctl daemon-reload
+  when: midwife_emr_tls_installed is defined and midwife_emr_tls_installed.changed == True
 
+- name: Enable the midwife-emr-tls service
+  command: systemctl enable midwife-emr-tls.service

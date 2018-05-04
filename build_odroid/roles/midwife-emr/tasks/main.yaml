@@ -1,7 +1,7 @@
 ---
 # Note: The Midwife-EMR service is dependent upon the midwife-emr-tls service
 # being installed and started as a prerequisite due to the TLS certificates/keys
-# that are needed.
+# that are needed. Therefore, we enable the service but we do not start it yet.
 
 - name: Install Midwife-EMR
   git:
@@ -20,9 +20,9 @@
     chdir: /srv/midwife-emr/midwife-emr
     creates: /srv/midwife-emr/midwife-emr/static/js/vendor.mwemr-bundle.js
 
-- name: Copy Elm admin client deliverables into place
+- name: Copy Elm admin and medical client deliverables into place
   copy:
-    src: ../../build_admin_client/files/docker/dist/
+    src: ../../build_clients/files/dist/
     dest: /srv/midwife-emr/midwife-emr/static/js
 
 - name: Change ownership of Midwife-EMR repo
@@ -35,17 +35,18 @@
 
 # Note that this can be removed once the Midwife-EMR webpack.config.js
 # is modified per this: https://github.com/webpack/webpack/issues/2223
-- name: Remove extraneous json.gzip files left over from Webpack cache
-  shell: /bin/rm /srv/midwife-emr/midwife-emr/*.json.gzip
-  ignore_errors: true
+#- name: Remove extraneous json.gzip files left over from Webpack cache
+  #shell: /bin/rm /srv/midwife-emr/midwife-emr/*.json.gzip
+  #ignore_errors: true
 
 - name: Install Midwife-EMR service
   copy:
-    src: roles/midwife-emr/files/midwife-emr.conf
-    dest: /etc/init/midwife-emr.conf
+    src: roles/midwife-emr/files/midwife-emr.service
+    dest: /etc/systemd/system/midwife-emr.service
     owner: root
     group: root
     mode: "u=rw,go=r"
+  register: midwife_emr_service_installed
 
 # Note: these next three tasks that generate random values do not 
 # actually create midwife-emr.json, but we do not want to run 
@@ -130,31 +131,10 @@
     name: midwifeemr
     state: present
 
-# The create_tables.sql and create_log_triggers.sql scripts are
-# idempotent. The create_log_tables.sql script is not so we
-# do not run it if it has already been run.
-- name: Determine if log tables have already been installed
-  command: /usr/bin/mysql -BNe "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'midwifeemr' AND TABLE_NAME LIKE '%Log'"
-  register: number_log_tables
-
-- name: Create the database tables
-  mysql_db:
-    name: midwifeemr
-    state: import
-    target: /srv/midwife-emr/midwife-emr/database/sql/create_tables.sql
-
-- name: Create the database log tables
-  mysql_db:
-    name: midwifeemr
-    state: import
-    target: /srv/midwife-emr/midwife-emr/database/sql/create_log_tables.sql
-  when: number_log_tables.stdout == "0"
-
-- name: Create the database log triggers
-  mysql_db:
-    name: midwifeemr
-    state: import
-    target: /srv/midwife-emr/midwife-emr/database/sql/create_log_triggers.sql
+- name: Create the database schema
+  command: /usr/local/bin/shmig -t mysql -H localhost -d midwifeemr -l root -p "{{ mysql_root_password }}" migrate
+  args:
+    chdir: /srv/midwife-emr/midwife-emr
 
 - name: Install getDbPassword.sh
   copy:
@@ -192,17 +172,9 @@
     group: "users"
     mode: "u=rwx,go="
 
-# Note: assumes that the eventType table needs content in order to be operational.
-- name: Determine if the default data has already been loaded
-  command: /usr/bin/mysql -BNe "SELECT COUNT(*) FROM midwifeemr.eventType"
-  register: number_eventType
+- name: Reload the systemd services as necessary
+  command: /bin/systemctl daemon-reload
+  when: midwife_emr_service_installed is defined and midwife_emr_service_installed.changed == True
 
-- name: Load default data into the database
-  mysql_db:
-    name: midwifeemr
-    state: import
-    target: /srv/midwife-emr/midwife-emr/database/sql/load_default_data.sql
-  when: number_eventType.stdout == "0"
-
-
-
+- name: Enable the midwife-emr.service
+  command: /bin/systemctl enable midwife-emr.service

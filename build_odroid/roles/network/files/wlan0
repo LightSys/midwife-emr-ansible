@@ -4,10 +4,3 @@ iface wlan0 inet static
     netmask 255.255.255.0
     network 192.168.222.0
     dns-nameservers 8.8.8.8 8.8.4.4
-
-pre-up /usr/bin/logger -t "wlan0 pre-up" "Adding iptable rules"
-pre-up /sbin/iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-pre-up /sbin/iptables -A FORWARD -i eth0 -o wlan0 -m state --state RELATED,ESTABLISHED -j ACCEPT
-pre-up /sbin/iptables -A FORWARD -i wlan0 -o eth0 -j ACCEPT
-pre-up /usr/bin/logger -t "wlan0 pre-up" "Adding done"
-

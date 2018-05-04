@@ -1,0 +1,7 @@
+auto eth0
+iface eth0 inet static
+   address {{ eth0_address }}
+   netmask {{ eth0_mask }}
+   gateway {{ eth0_gateway }}
+   dns-nameservers {{ eth0_nameservers }}
+allow-hotplug eth0

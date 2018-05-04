@@ -27,4 +27,4 @@
   # Note: Using tar instead of the unarchive module because don't see that the
   # unarchive module can strip components.
   shell: /bin/tar -xzf {{ download_dir }}/node-v{{ nodejs_version }}-linux-armv7l.tar.gz --strip-components=1 --group=root --no-same-owner -C /usr/local/
-  when: (current_node.rc == 1) or (current_node_version.stdout != "v{{ nodejs_version }}")
+  when: "current_node.rc == 1 or nodejs_version not in current_node_version.stdout"

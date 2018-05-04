@@ -1,16 +1,4 @@
 ---
-- name: Add support group
-  group: name=admin state=present
-
-- name: Add support user
-  user:
-    name="{{ support_user }}"
-    password="{{ support_user_password }}"
-    comment="Midwife-EMR support user."
-    group=admin
-    state=present
-    createhome=yes
-    shell=/bin/bash
 
 - name: Create the bin directory for the support user
   file:
@@ -19,13 +7,6 @@
     owner: "{{ support_user }}"
     group: "users"
     mode: "u=rwx,go="
-
-- name: Install my SSH public key for support user
-  authorized_key:
-    user: "{{ support_user }}"
-    state: present
-    manage_dir: yes
-    key: "{{ lookup('file', 'roles/users/files/support_user.pub') }}"
 
 - name: Add a myip alias for the support user
   lineinfile:
@@ -62,9 +43,3 @@
     createhome=yes
     home=/srv/midwife-emr
     shell=/bin/bash
-
-- name: Change the root password
-  user:
-    name=root
-    password="{{ root_password }}"
-    state=present

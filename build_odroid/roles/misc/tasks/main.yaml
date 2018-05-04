@@ -1,4 +1,5 @@
 ---
+
 - name: Create download directory
   file: path="{{ download_dir }}" state=directory mode=0700
 
@@ -8,24 +9,8 @@
 - name: Set hostname in /etc/hosts too
   lineinfile:
     dest: /etc/hosts
-    regexp: ^127\.0\.0\.1.*midwife-emr$
-    line: "127.0.0.1 midwife-emr"
-    state: present
-
-- name: Download odroid-cpu-control
-  get_url:
-    url: http://oph.mdrjr.net/odrobian/pool/main/o/odroid-cpu-control/odroid-cpu-control_1.0-4_all.deb
-    dest: "{{ download_dir }}/odroid-cpu-control_1.0-4_all.deb"
-
-- name: Install odroid-cpu-control
-  apt:
-    deb: "{{ download_dir }}/odroid-cpu-control_1.0-4_all.deb"
-
-- name: Set the governor in boot.ini to interactive
-  lineinfile:
-    dest: /media/boot/boot.ini
-    regexp: ^setenv governor.*$
-    line: "setenv governor \"interactive\" # Changed by Ansible: originally \"performance\""
+    regexp: ^127\.0\.0\.1.*{{ hostname }}$
+    line: "127.0.0.1 {{ hostname }}"
     state: present
 
 - name: Install shmig for migrations
@@ -36,3 +21,10 @@
     group: root
     owner: root
 
+## Adapted from: https://stackoverflow.com/a/38510313
+- name: remove reference to non-existent xconsole from rsyslog configuration file
+  replace:
+    dest: /etc/rsyslog.d/50-default.conf
+    regexp: "\\|/dev/xconsole"
+    replace: "|/dev/null"
+    backup: yes

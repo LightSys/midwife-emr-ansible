@@ -1,12 +1,31 @@
 ---
-- name: Install eth0 configuration
-  copy:
-    src: roles/network/files/eth0
+- name: Optionally install the static eth0 configuration
+  template:
+    src: roles/network/files/eth0-static.j2
     dest: /etc/network/interfaces.d/eth0
     mode: "u=rw,go=r"
     owner: root
     group: root
   register: was_eth0_installed
+  when:
+    - eth0_address != ""
+    - eth0_mask != ""
+    - eth0_gateway != ""
+    - eth0_nameservers != ""
+
+- name: Optionally install the dynamic eth0 configuration
+  copy:
+    src: roles/network/files/eth0-auto
+    dest: /etc/network/interfaces.d/eth0
+    mode: "u=rw,go=r"
+    owner: root
+    group: root
+  register: was_eth0_installed
+  when:
+    - eth0_address == ""
+    - eth0_mask == ""
+    - eth0_gateway == ""
+    - eth0_nameservers == ""
 
 - name: Install wlan0 configuration
   copy:
@@ -17,169 +36,149 @@
     group: root
   register: was_wlan0_installed
 
-- name: Install interfaces file
-  copy:
-    src: roles/network/files/interfaces
-    dest: /etc/network/interfaces
-    mode: "u=rw,go=r"
-    owner: root
-    group: root
-  register: was_interfaces_installed
+- name: Disable the isc-dhcp-server because we are using dnsmasq
+  command: systemctl disable isc-dhcp-server
 
-- name: Install udev rules for handling wifi modules
+- name: Install the dnsmasq configuration
   copy:
-    src: roles/network/files/realtek-wifi-module3.rules
-    dest: /etc/udev/rules.d
-    mode: "u=rw,go=r"
+    src: roles/network/files/dnsmasq.conf.j2
+    dest: /etc/dnsmasq.conf
+    backup: yes
+    mode: u=rw,go=r
     owner: root
     group: root
 
-- name: Edit the dhcpd configuration file
-  blockinfile:
-    dest: /etc/dhcp/dhcpd.conf
-    block: |
-      ### Adapted per instructions:
-      ### http://forum.odroid.com/viewtopic.php?f=52&t=9102
-      subnet 192.168.222.0 netmask 255.255.255.0 {
-          range 192.168.222.50 192.168.222.100;
-          option broadcast-address 192.168.222.255;
-          option routers 192.168.222.1;
-          default-lease-time 600;
-          max-lease-time 7200;
-          option domain-name "midwife-emr.local";
-          option domain-name-servers 8.8.8.8;
-      }
-      # Allow Midwife-EMR to be a DHCP server for the 20 network.
-      # Note that we no longer require Midwife-EMR to also run
-      # dns-masq since Midwife-EMR now uses IP address only rather
-      # than hostname.
-      subnet 192.168.20.0 netmask 255.255.255.0 {
-          range 192.168.20.50 192.168.20.250;
-          option routers 192.168.20.1;
-          option domain-name-servers 8.8.8.8;
-      }
-    insertafter: EOF
-    state: present
-
-- name: Set authoritative for the dhcpd configuration file
-  lineinfile:
-    dest: /etc/dhcp/dhcpd.conf
-    regexp: authoritative;
-    line: authoritative;
-
-- name: Edit the isc-dhcp-server configuration file
-  lineinfile:
-    dest: /etc/default/isc-dhcp-server
-    regexp: ^INTERFACES=
-    line: INTERFACES="wlan0 eth0"
-    state: present
-
-- name: Edit sysctl configuration file
-  blockinfile:
-    dest: /etc/sysctl.conf
-    block: |
-      ### Setup per instructions at:
-      ### http://forum.odroid.com/viewtopic.php?f=52&t=9102
-      net.ipv4.ip_forward=1
-    insertafter: EOF
-    state: present
-
-- name: Activate the port forwarding now
-  shell: echo 1 > /proc/sys/net/ipv4/ip_forward
-
-- name: Install hostapd
+# See: https://w1.fi/releases/hostapd-2.6.tar.gz
+# See: https://wiki.odroid.com/accessory/connectivity/wifi/wlan_ap
+- name: Copy and unarchive hostapd source
   unarchive:
-    src: "roles/network/files/hostapd_realtek.tar"
-    copy: yes
-    dest: /usr/local/bin/
+    src: roles/network/files/hostapd-2.6.tar.gz
+    dest: "{{ download_dir }}"
+
+- name: Base configuration of hostapd source
+  command: cp defconfig .config
+  args:
+    chdir: "{{ download_dir }}/hostapd-2.6/hostapd"
+    creates: "{{ download_dir }}/hostapd-2.6/hostapd/.config"
+
+- name: Additional configuration of hostapd source
+  blockinfile:
+    dest: "{{ download_dir }}/hostapd-2.6/hostapd/.config"
+    insertafter: EOF
+    state: present
+    block: |
+      CONFIG_LIBNL32=y
+      CONFIG_IEEE80211N=y
+      CONFIG_IEEE80211AC=y
+
+- name: Compilation of hostapd
+  shell: make
+  args:
+    chdir: "{{ download_dir }}/hostapd-2.6/hostapd"
+    creates: "{{ download_dir }}/hostapd-2.6/hostapd/hostapd"
+
+- name: Determine if hostapd daemon needs to be replaced
+  stat:
+    path: /usr/sbin/hostapd.old
+  register: hostapd_old_status
+
+- name: Determine if hostapd client needs to be replaced
+  stat:
+    path: /usr/sbin/hostapd_cli.old
+  register: hostapd_cli_old_status
+
+- name: Backup the original hostapd daemon
+  command: cp /usr/sbin/hostapd /usr/sbin/hostapd.old
+  args:
+    creates: /usr/sbin/hostapd.old
+
+- name: Backup the original hostapd client
+  command: cp /usr/sbin/hostapd_cli /usr/sbin/hostapd_cli.old
+  args:
+    creates: /usr/sbin/hostapd_cli.old
+
+- name: Replace the hostapd daemon with a newer version
+  command: cp ./hostapd /usr/sbin/
+  args:
+    chdir: "{{ download_dir }}/hostapd-2.6/hostapd"
+  when: hostapd_old_status is defined and hostapd_old_status.stat.exists == False
+
+- name: Replace the hostapd client with a newer version
+  command: cp ./hostapd_cli /usr/sbin/
+  args:
+    chdir: "{{ download_dir }}/hostapd-2.6/hostapd"
+  when: hostapd_cli_old_status is defined and hostapd_cli_old_status.stat.exists == False
+
+- name: Set config for hostapd in default
+  copy:
+    src: roles/network/files/hostapd
+    dest: /etc/default/hostapd
+    mode: u=rw,go=r
     owner: root
     group: root
-    mode: "u=rwx,go=rx"
-    creates: /usr/local/bin/hostapd
 
-- name: Create hostapd configuration directory
-  file:
-    path: /etc/hostapd
-    state: directory
-    owner: root
-    group: root
-    mode: "u=rwx,go=rx"
-
-- name: Install the hostapd configuration file for wlan0
+- name: Set configuration of hostapd
   copy:
     src: roles/network/files/hostapd.conf
-    dest: /etc/hostapd
+    dest: /etc/hostapd/hostapd.conf
+    mode: u=rw,go=r
     owner: root
     group: root
-    mode: "u=rw,go=r"
 
-- name: Bring everything up when it boots
+- name: Copy in sysctl.conf
+  copy:
+    src: roles/network/files/sysctl.conf
+    dest: /etc/sysctl.conf
+    mode: u=rw,go=r
+    owner: root
+    group: root
+
+- name: Force Network Manager to not manage wlan0
+  copy:
+    src: roles/network/files/network-manager-ignore-wlan0.conf
+    dest: /etc/NetworkManager/conf.d/network-manager-ignore-wlan0.conf
+    mode: u=rw,go=r
+    owner: root
+    group: root
+
+- name: Add rfkill command to rc.local
   blockinfile:
     dest: /etc/rc.local
-    block: |
-      ### Per instructions adapted from various places.
-      ### http://forum.odroid.com/viewtopic.php?f=52&t=9102
-      ifup wlan0
-      service isc-dhcp-server restart
-      /usr/local/bin/hostapd /etc/hostapd/hostapd.conf &
-    insertbefore: "exit 0"
+    insertbefore: exit 0
     state: present
+    marker_begin: "Begin rfkill"
+    marker_end: "End rfkill"
+    block: |
+      # Seems to need a sleep in order for this to take proper effect.
+      /usr/bin/logger -t rc.local "Sleeping in rc.local for 30 seconds before applying rfkill."
+      sleep 30
+      rfkill unblock wlan
+      /usr/bin/logger -t rc.local "'rfkill unblock wlan' complete"
+
+- name: Add iptables rules to rc.local
+  blockinfile:
+    dest: /etc/rc.local
+    state: present
+    insertafter: End rfkill
+    marker_begin: "Begin iptables"
+    marker_end: "End iptables"
+    block: |
+      /usr/bin/logger -t rc.local "Applying iptables to allow Internet traffic from eth0 for wlan0 clients."
+      iptables -F
+      iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+      iptables -A FORWARD -i eth0 -o wlan0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+      iptables -A FORWARD -i wlan0 -o eth0 -j ACCEPT
+      /usr/bin/logger -t rc.local  "iptables complete"
 
 - name: Restart ODroid
   command: /sbin/shutdown -r now
   async: 0
   poll: 0
   ignore_errors: true
-  when: (was_eth0_installed.changed == true) or (was_wlan0_installed.changed == true) or (was_interfaces_installed.changed == true)
-
-- name: Notice that the next task will fail if root password was just changed
-  debug:
-    msg: "NOTE: next step will fail if the root password was changed in current run of Ansible. Will need to restart and enter correct password."
-  when: (was_eth0_installed.changed == true) or (was_wlan0_installed.changed == true) or (was_interfaces_installed.changed == true)
+  when: (was_eth0_installed.changed == true) or (was_wlan0_installed.changed == true)
 
 - name: "Wait for network to come back after reboot: {{ inventory_hostname }}"
   local_action:
-    wait_for host={{ inventory_hostname }} port=22 search_regex=OpenSSH state=started delay=10 connect_timeout=10 timeout=120
+    wait_for host={{ inventory_hostname }} port=22 search_regex=OpenSSH state=started delay=30 connect_timeout=10 timeout=120
   become: false
-  when: (was_eth0_installed.changed == true) or (was_wlan0_installed.changed == true) or (was_interfaces_installed.changed == true)
-
-- name: Reset ufw to defaults but disabled
-  ufw:
-    state: reset
-
-# Configure ip masquerading using UFW.
-# https://help.ubuntu.com/lts/serverguide/firewall.html#ip-masquerading
-- name: Set the ufw default forwarding policy
-  lineinfile:
-    dest: /etc/default/ufw
-    regexp: "^[# ]*DEFAULT_FORWARD_POLICY="
-    line: DEFAULT_FORWARD_POLICY="ACCEPT"
-    state: present
-
-- name: Add ip masquerading rules to /etc/ufw/before.rules
-  blockinfile:
-    dest: /etc/ufw/before.rules
-    block: |
-      # nat Table rules
-      *nat
-      :POSTROUTING ACCEPT [0:0]
-
-      # Forward traffic from wlan0 through eth0.
-      -A POSTROUTING -s 192.168.222.0/24 -o eth0 -j MASQUERADE
-      COMMIT
-    insertbefore: "Don't delete these required lines, otherwise there will be errors"
-    state: present
-
-- name: Allow OpenSSH
-  ufw:
-    rule: allow
-    name: OpenSSH
-
-- name: Allow Nginx
-  ufw:
-    rule: allow
-    name: Nginx Full
-
-- name: Enable ufw
-  ufw:
-    state: enabled
+  when: (was_eth0_installed.changed == true) or (was_wlan0_installed.changed == true)

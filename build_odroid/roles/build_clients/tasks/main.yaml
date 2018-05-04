@@ -1,0 +1,58 @@
+---
+
+- name: Clean up the source code from the prior run
+  shell: docker run --rm -v $(pwd):/mnt alpine:3.7 rm -rf /mnt/app
+  args:
+    chdir: roles/build_clients/files/
+  become: no
+  delegate_to: 127.0.0.1
+
+- name: Clean up the output from the prior run
+  shell: docker run --rm -v $(pwd):/mnt alpine:3.7 rm -rf /mnt/dist
+  args:
+    chdir: roles/build_clients/files/
+  become: no
+  delegate_to: 127.0.0.1
+
+- name: Pull the Midwife-EMR repository
+  git:
+    repo: https://github.com/LightSys/midwife-EMR
+    clone: yes
+    dest: roles/build_clients/files/app
+    version: master
+  become: no
+  delegate_to: 127.0.0.1
+
+# Adapted from Midwife-EMR package.json script, build_admin_client_compiler
+- name: Build the admin client Docker image
+  shell: docker build -f Dockerfile -t midwife-emr-compile-admin-client --no-cache .
+  args:
+    chdir: roles/build_clients/files/app/client/elm/admin/
+  become: no
+  delegate_to: 127.0.0.1
+
+# Adapted from Midwife-EMR package.json script, build_medical_client_compiler
+- name: Build the medical client Docker image
+  shell: docker build -f Dockerfile -t midwife-emr-compile-medical-client --no-cache .
+  args:
+    chdir: roles/build_clients/files/app/client/elm/medical/
+  become: no
+  delegate_to: 127.0.0.1
+
+# Adapted from Midwife-EMR package.json script, admin_client_prod
+- name: Compile the admin client
+  shell: docker run --init --name=midwife-emr-compile-admin-client --rm -v $(pwd)/client/elm/admin:/opt/src -v $(pwd)/../dist:/opt/dist midwife-emr-compile-admin-client:latest webpack --config webpack.prod.js
+  args:
+    chdir: roles/build_clients/files/app
+  become: no
+  delegate_to: 127.0.0.1
+
+# Adapted from Midwife-EMR package.json script, medical_client_prod
+- name: Compile the medical client
+  shell: docker run --init --name=midwife-emr-compile-medical-client --rm -v $(pwd)/client/elm/medical:/opt/src -v $(pwd)/../dist:/opt/dist midwife-emr-compile-medical-client:latest webpack --config webpack.prod.js
+  args:
+    chdir: roles/build_clients/files/app
+  become: no
+  delegate_to: 127.0.0.1
+
+# Note: we don't copy the compiled output to the target yet.
