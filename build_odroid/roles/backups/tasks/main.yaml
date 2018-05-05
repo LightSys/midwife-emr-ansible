@@ -1,12 +1,26 @@
 ---
 
-- name: Add the required password to automysqlbackup cron job
+- name: Set the configuration for automysqlbackup
   template:
-    src: roles/backups/files/automysqlbackup.j2
-    dest: /etc/cron.daily/automysqlbackup
+    src: roles/backups/files/automysqlbackup_config.j2
+    dest: /etc/default/automysqlbackup
     mode: "u=rw,go=r"
     owner: root
     group: root
+
+- name: automysqlbackup cron job
+  cron:
+    name: "automysqlbackup cron job"
+    minute: "0"
+    hour: "18"
+    job: "/usr/sbin/automysqlbackup"
+    user: root
+    cron_file: automysqlbackup
+
+- name: remove the default automysqlbackup cron in cron.daily
+  file:
+    path: /etc/cron.daily/automysqlbackup
+    state: absent
 
 - name: create mount point for SDcard backup
   file:

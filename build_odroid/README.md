@@ -11,7 +11,8 @@
    - ansible_become_pass: this should be the unencrypted version of the support_user_password
    - midwifeemr_user_password: this should also be encrypted
    - root_password: encrypted as well
-   - mysql_root_password: encrypted
+   - mysql_root_password: unencrypted and better without spaces and other
+     weird stuff for sake of automysqlbackup
 
 3. Assumes that there is a file named `odroid` in `inventories` and it
    contains variable assignments. See sample below for details. Nothing in the

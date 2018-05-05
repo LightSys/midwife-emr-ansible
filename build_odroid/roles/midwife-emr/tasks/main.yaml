@@ -117,6 +117,7 @@
   blockinfile:
     block: |
       [client]
+      user=midwifesupport
       password="{{ database_support_password.stdout }}"
     dest: "/home/{{ support_user }}/.my.cnf"
     state: present

@@ -14,4 +14,3 @@
 
 - name: Set timezone if needed
   command: /usr/bin/timedatectl set-timezone {{ timezone }}
-  when: timedatectl_contents.stdout.find("Time zone") == -1

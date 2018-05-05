@@ -1,0 +1,72 @@
+USERNAME=root
+PASSWORD=$(grep "^password=" /root/.my.cnf |cut -d "=" -f2 |tr -d '"')
+DBHOST=localhost
+DBNAMES="midwifeemr"
+MAILCONTENT="stdout"
+
+# Backup directory location e.g /backups
+# Folders inside this one will be created (daily, weekly, etc.), and the
+# subfolders will be database names. Note that backups will be owned by
+# root, with Unix rights 0600.
+BACKUPDIR="/var/lib/automysqlbackup"
+
+# Mail setup
+# What would you like to be mailed to you?
+# - log   : send only log file
+# - files : send log file and sql files as attachments (see docs)
+# - stdout : will simply output the log to the screen if run manually.
+# - quiet : Only send logs if an error occurs to the MAILADDR.
+# MAILCONTENT="quiet"
+
+# Set the maximum allowed email size in k. (4000 = approx 5MB email [see
+# docs])
+MAXATTSIZE="4000"
+
+# Email Address to send mail to? (user@domain.com)
+MAILADDR="root"
+
+# ============================================================
+# === ADVANCED OPTIONS ( Read the doc's below for details )===
+#=============================================================
+
+# List of DBBNAMES for Monthly Backups.
+MDBNAMES="mysql $DBNAMES"
+
+# List of DBNAMES to EXLUCDE if DBNAMES are set to all (must be in " quotes)
+DBEXCLUDE=""
+
+# Include CREATE DATABASE in backup?
+CREATE_DATABASE=yes
+
+# Separate backup directory and file for each DB? (yes or no)
+SEPDIR=yes
+
+# Which day do you want weekly backups? (1 to 7 where 1 is Monday)
+DOWEEKLY=6
+
+# Choose Compression type. (gzip or bzip2)
+COMP=gzip
+
+# Compress communications between backup server and MySQL server?
+COMMCOMP=no
+
+# Additionally keep a copy of the most recent backup in a seperate
+# directory.
+LATEST=no
+
+#  The maximum size of the buffer for client/server communication. e.g. 16MB
+#  (maximum is 1GB)
+MAX_ALLOWED_PACKET=
+
+#  For connections to localhost. Sometimes the Unix socket file must be
+#  specified.
+SOCKET=
+
+# Command to run before backups (uncomment to use)
+#PREBACKUP="/etc/mysql-backup-pre"
+
+# Command run after backups (uncomment to use)
+#POSTBACKUP="/etc/mysql-backup-post"
+
+# Backup of stored procedures and routines (comment to remove)
+ROUTINES=yes

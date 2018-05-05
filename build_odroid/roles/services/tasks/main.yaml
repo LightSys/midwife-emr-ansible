@@ -55,5 +55,12 @@
     group: root
     mode: "u=rw,go="
 
+- name: Update the root MySQL password in the debian.cnf file
+  replace:
+    path: /etc/mysql/debian.cnf
+    regexp: '^password.*$'
+    replace: "password = {{ mysql_root_password }}"
+    backup: no
+
 - name: Disable plugins for the root user which allow password-less access.
   command: /usr/bin/mysql -uroot -e "UPDATE mysql.user SET plugin='' WHERE User='root';FLUSH PRIVILEGES;" mysql
