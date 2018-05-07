@@ -81,15 +81,6 @@
     user: root
     cron_file: midwife-emr_to_backups
 
-- name: Copy crontab to backups
-  cron:
-    name: "Copy crontab to backups"
-    minute: "25"
-    hour: "18"
-    job: "/bin/tar -czf /var/lib/backups/files/cron-daily.tar.gz /etc/cron.daily"
-    user: root
-    cron_file: cron_to_backups
-
 - name: Copy non-MySQL backups files to secondary drive
   cron:
     name: "Copy non-MySQL backups files to secondary drive"

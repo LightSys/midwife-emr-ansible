@@ -26,14 +26,16 @@ data in your own computer.**
 1. Read `scripts/README.md` and follow the instructions carefully.
 2. Attach the Odroid to the network using an ethernet cable and identify the
    IP address.
-3. SSH into the odroid using root/odroid as the username/password. For
+3. The Odroid will boot up and shut itself down again is a minute or two.
+   Restart it after it does this.
+4. SSH into the odroid using root/odroid as the username/password. For
    example, something like this but with the IP address you found in step 2.
 
 ```
 ssh root@192.168.0.150
 ```
 
-4. Follow the instructions on the Odroid wiki page here:
+5. Follow the instructions on the Odroid wiki page here:
    https://wiki.odroid.com/odroid-xu4/os_images/linux/ubuntu_4.14/20171213#how_to_update_system_and_kernel_software_don_t_forget_dist-upgrade
 
 ```
@@ -45,7 +47,7 @@ reboot
 ```
    **NOTE: the install of linux-image-xu3 will bring up a mean looking dialog box. Select NO.**
 
-5. Install python on the Odroid because Ansible needs it
+6. Install python on the Odroid because Ansible needs it
 
    - SSH into the Odroid using root/odroid as the username/password.
 
@@ -55,14 +57,14 @@ apt-get install python
 
   - Exit SSH
 
-6. Generate a ssh key for your account on your workstation (only if you don't
+7. Generate a ssh key for your account on your workstation (only if you don't
    have one already or want to use a dedicated SSH key).
 
     ```
     ssh-keygen -b 4096 -t rsa -N "" -f /home/YourUserName/.ssh/midwife-emr-odroid-support-key
     ```
 
-7. Read the README.md in the build_odroid directory and continue with
+8. Read the README.md in the build_odroid directory and continue with
    instructions there.
 
 ## License
