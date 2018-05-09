@@ -95,6 +95,6 @@
     name: "Copy MySQL backups files to secondary drive"
     minute: "5"
     hour: "19"
-    job: "/bin/cp -r /var/lib/automysqlbackup /backups/"
+    job: "/usr/bin/rsync -avr /var/lib/automysqlbackup /backups"
     user: root
     cron_file: mysql_to_sdcard
