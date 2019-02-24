@@ -36,6 +36,14 @@
     group: root
   register: was_wlan0_installed
 
+- name: Change from source-directory to source in interfaces for Ubuntu 16.04
+  copy:
+    src: roles/network/files/interfaces
+    dest: /etc/network/interfaces
+    mode: "u=rw,go=r"
+    owner: root
+    group: root
+
 - name: Disable the isc-dhcp-server because we are using dnsmasq
   command: systemctl disable isc-dhcp-server
 
